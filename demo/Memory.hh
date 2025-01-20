@@ -10,6 +10,9 @@
 class Memory : public acalsim::SimModule {
 public:
 	explicit Memory(std::string _name = "Memory");
+
+	acalsim::Tick getProcessLatency(uint32_t _size) const;
+	acalsim::Tick getRespLatency(uint32_t _size) const;
 };
 
 #endif  // DEMO_MEMORY_HH_
