@@ -11,8 +11,14 @@ public:
 	ExampleSimulator(std::string _name = "ExampleSimulator") : acalsim::STSimBase(_name) {}
 
 	void registerModules() override {
-		this->addModule(new TrafficGenerator());
-		this->addModule(new Memory());
+		TrafficGenerator* tg  = new TrafficGenerator();
+		Memory*           mem = new Memory();
+
+		tg->addDownStream(mem, "DSMem");
+		mem->addUpStream(tg, "USTrafficGenerator");
+
+		this->addModule(tg);
+		this->addModule(mem);
 	}
 
 	void simInit() override { LABELED_INFO(this->getName()) << "ExampleSimulator::simInit() is invoked."; }
