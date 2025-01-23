@@ -46,9 +46,10 @@ public:
 
 	void print_regfile();
 
+	instr       FetchInstr(uint32_t pc);
 	std::string InstrToString(instr_type op);
-	void        ProcessNxtInstr(Tick latency);
-	void        ProcessInstr();
+	void        ProcessNxtInstr();
+	void        ProcessInstr(const instr& i);
 	instr*      getIMemPtr() { return this->imem; }
 	uint32_t&   getPCRef() { return this->pc; }
 	uint32_t (&getRFRef())[32] { return this->rf; }

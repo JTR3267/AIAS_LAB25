@@ -18,5 +18,5 @@
 
 void ProcessInstrEvent::process() {
 	auto cpu = (CPUEmulator*)(this->sim);
-	cpu->ProcessInstr();
+	cpu->ProcessInstr(this->inst);
 }

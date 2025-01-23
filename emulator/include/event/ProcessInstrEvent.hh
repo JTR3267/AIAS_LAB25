@@ -25,17 +25,22 @@ using namespace acalsim;
 
 class ProcessInstrEvent : public SimEvent {
 public:
-	ProcessInstrEvent(int _id, SimModule* _sim) : SimEvent("ProcessInstrEvent" + std::to_string(_id)), sim(_sim) {
+	ProcessInstrEvent(int _id, SimModule* _sim, instr& _instr)
+	    : SimEvent("ProcessInstrEvent" + std::to_string(_id)), sim(_sim), inst(_instr) {
 		this->clearFlags(Managed);
 	}
 	~ProcessInstrEvent() {}
 	ProcessInstrEvent() {}
 
-	void renew(int _id, SimModule* _sim) { this->sim = _sim; }
+	void renew(int _id, SimModule* _sim, instr _instr) {
+		this->sim  = _sim;
+		this->inst = _instr;
+	}
 	void process() override;
 
 private:
 	SimModule* sim;
+	instr      inst;
 };
 
 #endif

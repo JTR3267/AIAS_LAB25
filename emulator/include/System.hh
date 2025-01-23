@@ -52,7 +52,7 @@ public:
 		            this->labels, this->label_count, &(this->src));
 		this->normalize_labels(this->cpu->getIMemPtr(), this->labels, this->label_count, &(this->src));
 
-		this->cpu->ProcessNxtInstr(1);
+		this->cpu->ProcessNxtInstr();
 	}
 
 	uint32_t   label_addr(char* label, label_loc* labels, int label_count, int orig_line);

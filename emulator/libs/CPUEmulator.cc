@@ -23,10 +23,26 @@ void CPUEmulator::print_regfile() {
 	}
 }
 
-void CPUEmulator::ProcessNxtInstr(Tick latency) {
-	auto               rc    = top->getRecycleContainer();
-	ProcessInstrEvent* event = rc->acquire<ProcessInstrEvent>(&ProcessInstrEvent::renew, this->inst_cnt, this);
-	this->scheduleEvent(event, top->getGlobalTick() + latency);
+void CPUEmulator::ProcessNxtInstr() {
+	instr i = this->FetchInstr(this->pc);
+
+	switch (i.op) {
+		case LB:
+		case LBU:
+		case LH:
+		case LHU:
+		case LW: this->MemRead(i.a1.reg, i.op, this->rf[i.a2.reg] + i.a3.imm); break;
+
+		case SB:
+		case SH:
+		case SW: this->MemWrite(i.op, this->rf[i.a2.reg] + i.a3.imm, this->rf[i.a1.reg]); break;
+		default: {
+			auto               rc = top->getRecycleContainer();
+			ProcessInstrEvent* event =
+			    rc->acquire<ProcessInstrEvent>(&ProcessInstrEvent::renew, this->inst_cnt, this, i);
+			this->scheduleEvent(event, top->getGlobalTick() + 1);
+		} break;
+	}
 }
 
 void CPUEmulator::MemRead(int rd, instr_type op, uint32_t addr) {
@@ -55,12 +71,15 @@ void CPUEmulator::MemReadRespHandler(int rd, MemReadRespPacket* pkt) {
 	uint32_t data = pkt->getData();
 
 	this->rf[rd] = data;
-
-	this->ProcessInstr();
+	this->pc     = this->pc + 4;
+	this->ProcessNxtInstr();
 
 	top->getRecycleContainer()->recycle(pkt);
 }
-void CPUEmulator::MemWriteRespHandler() { this->ProcessInstr(); }
+void CPUEmulator::MemWriteRespHandler() {
+	this->pc = this->pc + 4;
+	this->ProcessNxtInstr();
+}
 
 std::string CPUEmulator::InstrToString(instr_type op) {
 	switch (op) {
@@ -124,10 +143,15 @@ std::string CPUEmulator::InstrToString(instr_type op) {
 	}
 }
 
-void CPUEmulator::ProcessInstr() {
+instr CPUEmulator::FetchInstr(uint32_t pc) {
 	auto     rf_ref = this->rf;
 	uint32_t iid    = this->pc / 4;
 	instr    i      = this->imem[iid];
+	return i;
+}
+
+void CPUEmulator::ProcessInstr(const instr& i) {
+	auto rf_ref = this->rf;
 	this->incrementInstCount();
 	int pc_next = this->pc + 4;
 
@@ -160,22 +184,6 @@ void CPUEmulator::ProcessInstr() {
 		case SLLI: rf_ref[i.a1.reg] = rf_ref[i.a2.reg] << i.a3.imm; break;
 		case SRLI: rf_ref[i.a1.reg] = rf_ref[i.a2.reg] >> i.a3.imm; break;
 		case SRAI: rf_ref[i.a1.reg] = (*(int32_t*)&rf_ref[i.a2.reg]) >> i.a3.imm; break;
-
-		case LB:
-		case LBU:
-		case LH:
-		case LHU:
-		case LW:
-			this->MemRead(i.a1.reg, i.op, rf_ref[i.a2.reg] + i.a3.imm);
-			nxt_state = MEMREQ;
-			break;
-
-		case SB:
-		case SH:
-		case SW:
-			this->MemWrite(i.op, rf_ref[i.a2.reg] + i.a3.imm, rf_ref[i.a1.reg]);
-			nxt_state = MEMREQ;
-			break;
 
 		case BEQ:
 			if (rf_ref[i.a1.reg] == rf_ref[i.a2.reg]) pc_next = i.a3.imm;
@@ -224,7 +232,7 @@ void CPUEmulator::ProcessInstr() {
 		CLASS_INFO << "Instruction " << this->InstrToString(i.op) << " is processed at Tick = " << top->getGlobalTick()
 		           << " | PC = " << this->pc;
 
-		this->ProcessNxtInstr(1);
+		this->ProcessNxtInstr();
 	} else if (nxt_state == END) {
 		CLASS_INFO << "Instruction " << this->InstrToString(i.op) << " is processed at Tick = " << top->getGlobalTick()
 		           << " | PC = " << this->pc << " CPU ISA emulation is done";
