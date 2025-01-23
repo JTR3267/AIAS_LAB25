@@ -16,12 +16,6 @@
 
 #include "../include/event/MemReqEvent.hh"
 
-void MemReadReqEvent::process() {
-	((DataMemory*)callee)->accept(top->getGlobalTick(), (SimPacket&)*memReqPkt);
-	CLASS_INFO << "Instruction LOAD is processed at Tick = " << top->getGlobalTick();
-}
+void MemReadReqEvent::process() { ((DataMemory*)callee)->accept(top->getGlobalTick(), (SimPacket&)*memReqPkt); }
 
-void MemWriteReqEvent::process() {
-	((DataMemory*)callee)->accept(top->getGlobalTick(), (SimPacket&)*memReqPkt);
-	CLASS_INFO << "Instruction STORE is processed at Tick = " << top->getGlobalTick();
-}
+void MemWriteReqEvent::process() { ((DataMemory*)callee)->accept(top->getGlobalTick(), (SimPacket&)*memReqPkt); }

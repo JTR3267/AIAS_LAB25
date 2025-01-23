@@ -68,6 +68,8 @@ void CPUEmulator::MemWrite(instr_type op, uint32_t addr, uint32_t data) {
 }
 
 void CPUEmulator::MemReadRespHandler(int rd, MemReadRespPacket* pkt) {
+	CLASS_INFO << "Instruction LOAD"
+	           << " is processed at Tick = " << top->getGlobalTick() << " | PC = " << this->pc;
 	uint32_t data = pkt->getData();
 
 	this->rf[rd] = data;
@@ -77,6 +79,8 @@ void CPUEmulator::MemReadRespHandler(int rd, MemReadRespPacket* pkt) {
 	top->getRecycleContainer()->recycle(pkt);
 }
 void CPUEmulator::MemWriteRespHandler() {
+	CLASS_INFO << "Instruction STORE"
+	           << " is processed at Tick = " << top->getGlobalTick() << " | PC = " << this->pc;
 	this->pc = this->pc + 4;
 	this->ProcessNxtInstr();
 }
@@ -231,12 +235,11 @@ void CPUEmulator::ProcessInstr(const instr& i) {
 	if (nxt_state == PROCESS) {
 		CLASS_INFO << "Instruction " << this->InstrToString(i.op) << " is processed at Tick = " << top->getGlobalTick()
 		           << " | PC = " << this->pc;
-
+		this->pc = pc_next % MEM_BYTES;
 		this->ProcessNxtInstr();
+
 	} else if (nxt_state == END) {
 		CLASS_INFO << "Instruction " << this->InstrToString(i.op) << " is processed at Tick = " << top->getGlobalTick()
 		           << " | PC = " << this->pc << " CPU ISA emulation is done";
 	}
-
-	this->pc = pc_next % MEM_BYTES;
 }
