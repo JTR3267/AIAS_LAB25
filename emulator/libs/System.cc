@@ -22,10 +22,10 @@ using namespace system_config;
 System::System(std::string name) : STSimBase(name), label_count(0), memoff(0) {
 	CLASS_INFO << "asm_file_path : " << top->getParameter<std::string>("System", "asm_file_path");
 
-	CLASS_INFO << "memory_size : " << top->getParameter<int>("System", "memory_size");
+	CLASS_INFO << "memory_size : " << top->getParameter<int>("System", "memory_size") << " Bytes";
 
-	CLASS_INFO << "memory_read_latency : " << top->getParameter<Tick>("System", "memory_read_latency");
-	CLASS_INFO << "memory_write_latency : " << top->getParameter<Tick>("System", "memory_write_latency");
+	CLASS_INFO << "memory_read_latency : " << top->getParameter<Tick>("System", "memory_read_latency") << " Ticks";
+	CLASS_INFO << "memory_write_latency : " << top->getParameter<Tick>("System", "memory_write_latency") << " Ticks";
 
 	this->labels     = (label_loc*)malloc(MAX_LABEL_COUNT * sizeof(label_loc));
 	this->src.offset = 0;

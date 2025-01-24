@@ -22,7 +22,7 @@
 void CPUEmulator::print_regfile() {
 	std::ostringstream oss;
 
-	oss << "\n";
+	oss << "CPU ISA emulation is done\n";
 	for (int i = 0; i < 32; i++) {
 		oss << "x" << std::setw(2) << std::setfill('0') << std::dec << i << ":0x";
 
@@ -249,7 +249,7 @@ void CPUEmulator::ProcessInstr(const instr& i) {
 
 	} else if (nxt_state == END) {
 		CLASS_INFO << "Instruction " << this->InstrToString(i.op) << " is completed at Tick = " << top->getGlobalTick()
-		           << " | PC = " << this->pc << " CPU ISA emulation is done";
+		           << " | PC = " << this->pc;
 		this->print_regfile();
 	}
 }
