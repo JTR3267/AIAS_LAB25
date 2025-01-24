@@ -16,8 +16,8 @@
 
 #include "CPUEmulator.hh"
 
-#include <iomanip>  // std::setw, std::setfill, std::hex, std::dec
-#include <sstream>  // std::ostringstream
+#include <iomanip>
+#include <sstream>
 
 void CPUEmulator::print_regfile() {
 	std::ostringstream oss;
