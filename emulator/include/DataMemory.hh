@@ -45,8 +45,7 @@ public:
 
 	void init() override {
 		size_t mem_size = this->getSize();
-		CLASS_INFO << mem_size;
-		char* zeroBuf = new char[mem_size]();
+		char*  zeroBuf  = new char[mem_size]();
 		this->initMem(zeroBuf, mem_size);
 
 		delete[] zeroBuf;
