@@ -17,10 +17,12 @@
 #include "CPUEmulator.hh"
 
 void CPUEmulator::print_regfile() {
+	printf("\n");
 	for (int i = 0; i < 32; i++) {
 		printf("x%02d:0x%08x ", i, this->rf[i]);
 		if ((i + 1) % 8 == 0) printf("\n");
 	}
+	printf("\n");
 }
 
 void CPUEmulator::ProcessNxtInstr() {
@@ -69,7 +71,7 @@ void CPUEmulator::MemWrite(instr_type op, uint32_t addr, uint32_t data) {
 
 void CPUEmulator::MemReadRespHandler(int rd, MemReadRespPacket* pkt) {
 	CLASS_INFO << "Instruction LOAD"
-	           << " is processed at Tick = " << top->getGlobalTick() << " | PC = " << this->pc;
+	           << " is completed at Tick = " << top->getGlobalTick() << " | PC = " << this->pc;
 	uint32_t data = pkt->getData();
 
 	this->rf[rd] = data;
@@ -80,7 +82,7 @@ void CPUEmulator::MemReadRespHandler(int rd, MemReadRespPacket* pkt) {
 }
 void CPUEmulator::MemWriteRespHandler() {
 	CLASS_INFO << "Instruction STORE"
-	           << " is processed at Tick = " << top->getGlobalTick() << " | PC = " << this->pc;
+	           << " is completed at Tick = " << top->getGlobalTick() << " | PC = " << this->pc;
 	this->pc = this->pc + 4;
 	this->ProcessNxtInstr();
 }
@@ -219,11 +221,7 @@ void CPUEmulator::ProcessInstr(const instr& i) {
 		case AUIPC: rf_ref[i.a1.reg] = this->pc + (i.a2.imm << 12); break;
 		case LUI: rf_ref[i.a1.reg] = (i.a2.imm << 12); break;
 
-		case HCF:
-			CLASS_INFO << "Reached Halt and Catch Fire instruction!";
-			this->print_regfile();
-			nxt_state = END;
-			break;
+		case HCF: nxt_state = END; break;
 		case UNIMPL:
 		default:
 			CLASS_INFO << "Reached an unimplemented instruction!";
@@ -233,13 +231,14 @@ void CPUEmulator::ProcessInstr(const instr& i) {
 	}
 
 	if (nxt_state == PROCESS) {
-		CLASS_INFO << "Instruction " << this->InstrToString(i.op) << " is processed at Tick = " << top->getGlobalTick()
+		CLASS_INFO << "Instruction " << this->InstrToString(i.op) << " is completed at Tick = " << top->getGlobalTick()
 		           << " | PC = " << this->pc;
 		this->pc = pc_next % MEM_BYTES;
 		this->ProcessNxtInstr();
 
 	} else if (nxt_state == END) {
-		CLASS_INFO << "Instruction " << this->InstrToString(i.op) << " is processed at Tick = " << top->getGlobalTick()
+		CLASS_INFO << "Instruction " << this->InstrToString(i.op) << " is completed at Tick = " << top->getGlobalTick()
 		           << " | PC = " << this->pc << " CPU ISA emulation is done";
+		this->print_regfile();
 	}
 }

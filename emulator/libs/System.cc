@@ -520,7 +520,7 @@ void System::parse(const std::string& file_path, uint8_t* mem, instr* imem, int&
 	if (!fin) { ERROR << file_path << ": No such file"; }
 	int line = 0;
 
-	printf("Parsing input file\n");
+	CLASS_INFO << "Parsing input file";
 
 	// sectionType cur_section = SECTION_NONE;
 

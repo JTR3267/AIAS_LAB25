@@ -52,6 +52,7 @@ public:
 		            this->labels, this->label_count, &(this->src));
 		this->normalize_labels(this->cpu->getIMemPtr(), this->labels, this->label_count, &(this->src));
 
+		CLASS_INFO << "Simulation starts";
 		this->cpu->ProcessNxtInstr();
 	}
 
