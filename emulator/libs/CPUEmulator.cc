@@ -16,13 +16,24 @@
 
 #include "CPUEmulator.hh"
 
+#include <iomanip>  // std::setw, std::setfill, std::hex, std::dec
+#include <sstream>  // std::ostringstream
+
 void CPUEmulator::print_regfile() {
-	printf("\n");
+	std::ostringstream oss;
+
+	oss << "\n";
 	for (int i = 0; i < 32; i++) {
-		printf("x%02d:0x%08x ", i, this->rf[i]);
-		if ((i + 1) % 8 == 0) printf("\n");
+		oss << "x" << std::setw(2) << std::setfill('0') << std::dec << i << ":0x";
+
+		oss << std::setw(8) << std::setfill('0') << std::hex << this->rf[i] << " ";
+
+		if ((i + 1) % 8 == 0) { oss << "\n"; }
 	}
-	printf("\n");
+
+	oss << "\n";
+
+	CLASS_INFO << oss.str();
 }
 
 void CPUEmulator::ProcessNxtInstr() {
