@@ -250,6 +250,5 @@ void CPUEmulator::ProcessInstr(const instr& i) {
 	} else if (nxt_state == END) {
 		CLASS_INFO << "Instruction " << this->InstrToString(i.op) << " is completed at Tick = " << top->getGlobalTick()
 		           << " | PC = " << this->pc;
-		this->print_regfile();
 	}
 }

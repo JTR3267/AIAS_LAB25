@@ -76,7 +76,10 @@ public:
 	           int& label_count, source* src);
 	void normalize_labels(instr* imem, label_loc* labels, int label_count, source* src);
 
-	void cleanup() override { CLASS_INFO << "System::cleanup() " + name; }
+	void cleanup() override {
+		this->cpu->print_regfile();
+		CLASS_INFO << "System::cleanup() " + name;
+	}
 
 private:
 	CPUEmulator* cpu;
