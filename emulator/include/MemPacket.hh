@@ -14,21 +14,19 @@
  * limitations under the License.
  */
 
-#ifndef SRC_TESTEMULATOR_INCLUDE_MEMPACKET_HH_
-#define SRC_TESTEMULATOR_INCLUDE_MEMPACKET_HH_
-
-#include "ACALSim.hh"
-using namespace acalsim;
+#ifndef EMULATOR_INCLUDE_MEMPACKET_HH_
+#define EMULATOR_INCLUDE_MEMPACKET_HH_
 
 #include <stdint.h>
 
 #include <functional>
 
+#include "ACALSim.hh"
 #include "DataStruct.hh"
 
-class MemReadRespPacket : public SimPacket {
+class MemReadRespPacket : public acalsim::SimPacket {
 public:
-	MemReadRespPacket(uint32_t _data) : SimPacket(), data(_data) {}
+	MemReadRespPacket(uint32_t _data) : acalsim::SimPacket(), data(_data) {}
 	~MemReadRespPacket() {}
 	MemReadRespPacket() {}
 
@@ -36,28 +34,29 @@ public:
 
 	void renew(uint32_t _data) { this->data = _data; }
 
-	void visit(Tick when, SimModule& module) override;
-	void visit(Tick when, SimBase& simulator) override;
+	void visit(acalsim::Tick when, acalsim::SimModule& module) override;
+	void visit(acalsim::Tick when, acalsim::SimBase& simulator) override;
 
 private:
 	uint32_t data;
 };
 
-class MemReadReqPacket : public SimPacket {
+class MemReadReqPacket : public acalsim::SimPacket {
 public:
 	MemReadReqPacket(std::function<void(MemReadRespPacket*)> _callback, instr_type _op, uint32_t _addr)
-	    : SimPacket(), callback(_callback), op(_op), addr(_addr) {}
+	    : acalsim::SimPacket(), callback(_callback), op(_op), addr(_addr) {}
 	~MemReadReqPacket() {}
 	MemReadReqPacket() {}
 
 	void renew(std::function<void(MemReadRespPacket*)> _callback, instr_type _op, uint32_t _addr) {
+		this->SimPacket::renew();
 		this->callback = _callback;
 		this->op       = _op;
 		this->addr     = _addr;
 	}
 
-	void visit(Tick when, SimModule& module) override;
-	void visit(Tick when, SimBase& simulator) override;
+	void visit(acalsim::Tick _when, acalsim::SimModule& _module) override;
+	void visit(acalsim::Tick _when, acalsim::SimBase& _simulator) override;
 
 	const instr_type& getOP() { return this->op; }
 	const uint32_t&   getAddr() { return this->addr; }
@@ -70,22 +69,23 @@ private:
 	std::function<void(MemReadRespPacket*)> callback;
 };
 
-class MemWriteReqPacket : public SimPacket {
+class MemWriteReqPacket : public acalsim::SimPacket {
 public:
 	MemWriteReqPacket(std::function<void(void)> _callback, instr_type _op, uint32_t _addr, uint32_t _data = 0)
-	    : SimPacket(), callback(_callback), op(_op), addr(_addr), data(_data) {}
+	    : acalsim::SimPacket(), callback(_callback), op(_op), addr(_addr), data(_data) {}
 	~MemWriteReqPacket() {}
 	MemWriteReqPacket() {}
 
 	void renew(std::function<void(void)> _callback, instr_type _op, uint32_t _addr, uint32_t _data) {
+		this->SimPacket::renew();
 		this->callback = _callback;
 		this->op       = _op;
 		this->addr     = _addr;
 		this->data     = _data;
 	}
 
-	void visit(Tick when, SimModule& module) override;
-	void visit(Tick when, SimBase& simulator) override;
+	void visit(acalsim::Tick _when, acalsim::SimModule& _module) override;
+	void visit(acalsim::Tick _when, acalsim::SimBase& _simulator) override;
 
 	const instr_type& getOP() { return this->op; }
 	const uint32_t&   getAddr() { return this->addr; }

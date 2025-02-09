@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef INCLUDE_BASE_BASEMEMORY_HH_
-#define INCLUDE_BASE_BASEMEMORY_HH_
+#ifndef EMULATOR_INCLUDE_BASEMEMORY_HH_
+#define EMULATOR_INCLUDE_BASEMEMORY_HH_
 
 #include <cstddef>
 #include <cstdint>
@@ -70,4 +70,4 @@ private:
 	const size_t size;
 };
 
-#endif  // INCLUDE_BASE_BASEMEMORY_HH_
+#endif

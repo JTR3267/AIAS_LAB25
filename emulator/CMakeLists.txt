@@ -27,4 +27,4 @@ add_executable(${EXE_NAME} emulator.cc)
 add_subdirectory(libs)
 
 # Link libraries to the executable
-target_link_libraries(${EXE_NAME} PRIVATE emulator_lib PRIVATE CLI11::CLI11)
+target_link_libraries(${EXE_NAME} PRIVATE emulator_lib)

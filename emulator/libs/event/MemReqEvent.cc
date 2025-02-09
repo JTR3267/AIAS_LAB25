@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include "../include/event/MemReqEvent.hh"
+#include "event/MemReqEvent.hh"
 
-void MemReadReqEvent::process() { ((DataMemory*)callee)->accept(top->getGlobalTick(), (SimPacket&)*memReqPkt); }
+void MemReadReqEvent::process() { callee->accept(acalsim::top->getGlobalTick(), (acalsim::SimPacket&)*memReqPkt); }
 
-void MemWriteReqEvent::process() { ((DataMemory*)callee)->accept(top->getGlobalTick(), (SimPacket&)*memReqPkt); }
+void MemWriteReqEvent::process() { callee->accept(acalsim::top->getGlobalTick(), (acalsim::SimPacket&)*memReqPkt); }

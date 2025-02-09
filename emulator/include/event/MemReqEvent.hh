@@ -14,56 +14,52 @@
  * limitations under the License.
  */
 
-#ifndef SRC_TESTEMULATOR_INCLUDE_MEMREQEVENT_HH_
-#define SRC_TESTEMULATOR_INCLUDE_MEMREQEVENT_HH_
+#ifndef EMULATOR_INCLUDE_EVENT_MEMREQEVENT_HH_
+#define EMULATOR_INCLUDE_EVENT_MEMREQEVENT_HH_
 
 #include "ACALSim.hh"
-using namespace acalsim;
-
 #include "DataMemory.hh"
 #include "MemPacket.hh"
 
-class MemReadReqEvent : public SimEvent {
+class MemReadReqEvent : public acalsim::SimEvent {
 public:
-	MemReadReqEvent(SimModule*        _callee,    // pointer of callee
-	                MemReadReqPacket* _memReqPkt  // The packet for the downstream callee to process
-	                )
-	    : SimEvent("MemReadReqEvent"), callee(_callee), memReqPkt(_memReqPkt) {
+	MemReadReqEvent(DataMemory* _callee, MemReadReqPacket* _memReqPkt)
+	    : acalsim::SimEvent("MemReadReqEvent"), callee(_callee), memReqPkt(_memReqPkt) {
 		this->clearFlags(this->Managed);
 	}
 	~MemReadReqEvent() {}
 	MemReadReqEvent() {}
 
-	void renew(SimModule* _callee, MemReadReqPacket* _memReqPkt) {
+	void renew(DataMemory* _callee, MemReadReqPacket* _memReqPkt) {
+		this->SimEvent::renew();
 		this->callee    = _callee;
 		this->memReqPkt = _memReqPkt;
 	}
 	void process() override;
 
 private:
-	SimModule*        callee;
+	DataMemory*       callee;
 	MemReadReqPacket* memReqPkt;
 };
 
-class MemWriteReqEvent : public SimEvent {
+class MemWriteReqEvent : public acalsim::SimEvent {
 public:
-	MemWriteReqEvent(SimModule*         _callee,    // pointer of callee
-	                 MemWriteReqPacket* _memReqPkt  // The packet for the downstream callee to process
-	                 )
-	    : SimEvent("MemWriteReqEvent"), callee(_callee), memReqPkt(_memReqPkt) {
+	MemWriteReqEvent(DataMemory* _callee, MemWriteReqPacket* _memReqPkt)
+	    : acalsim::SimEvent("MemWriteReqEvent"), callee(_callee), memReqPkt(_memReqPkt) {
 		this->clearFlags(this->Managed);
 	}
 	~MemWriteReqEvent() {}
 	MemWriteReqEvent() {}
 
-	void renew(SimModule* _callee, MemWriteReqPacket* _memReqPkt) {
+	void renew(DataMemory* _callee, MemWriteReqPacket* _memReqPkt) {
+		this->SimEvent::renew();
 		this->callee    = _callee;
 		this->memReqPkt = _memReqPkt;
 	}
 	void process() override;
 
 private:
-	SimModule*         callee;
+	DataMemory*        callee;
 	MemWriteReqPacket* memReqPkt;
 };
 

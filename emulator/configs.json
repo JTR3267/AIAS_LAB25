@@ -1,5 +1,5 @@
 {
-  "System": {
+  "Emulator": {
     "asm_file_path": "emulator/asm/load_store_simple.txt",
     "memory_size": 65536,
     "memory_read_latency": 5,

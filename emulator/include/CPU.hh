@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-#ifndef SRC_TESTEMULATOR_INCLUDE_CPUEMULATOR_HH_
-#define SRC_TESTEMULATOR_INCLUDE_CPUEMULATOR_HH_
+#ifndef EMULATOR_INCLUDE_CPU_HH_
+#define EMULATOR_INCLUDE_CPU_HH_
 
 #include <string>
 
 #include "ACALSim.hh"
-using namespace acalsim;
-
 #include "DataStruct.hh"
 #include "MemPacket.hh"
 #include "event/MemReqEvent.hh"
@@ -30,9 +28,9 @@ using namespace acalsim;
 /**
  * @class A CPU model integrated with CPU ISA Emulator
  */
-class CPUEmulator : public SimModule {
+class CPU : public acalsim::SimModule {
 public:
-	CPUEmulator(std::string _name) : SimModule(_name), pc(0), inst_cnt(0) {
+	CPU(std::string _name) : acalsim::SimModule(_name), pc(0), inst_cnt(0) {
 		imem = (instr*)malloc(DATA_OFFSET * sizeof(instr) / 4);
 		for (int i = 0; i < DATA_OFFSET / 4; i++) {
 			imem[i].op      = UNIMPL;
@@ -42,24 +40,24 @@ public:
 		}
 		for (int i = 0; i < 32; i++) { this->rf[i] = 0; }
 	}
-	~CPUEmulator() { free(imem); }
+	~CPU() { free(imem); }
 
-	void print_regfile();
+	inline instr*    getIMemPtr() { return this->imem; }
+	inline uint32_t& getPCRef() { return this->pc; }
+	inline uint32_t (&getRFRef())[32] { return this->rf; }
+	inline void       incrementInstCount() { this->inst_cnt++; }
+	inline const int& getInstCount() { return this->inst_cnt; }
 
-	instr       FetchInstr(uint32_t pc);
-	std::string InstrToString(instr_type op);
-	void        ProcessNxtInstr();
-	void        ProcessInstr(const instr& i);
-	instr*      getIMemPtr() { return this->imem; }
-	uint32_t&   getPCRef() { return this->pc; }
-	uint32_t (&getRFRef())[32] { return this->rf; }
-	void       incrementInstCount() { this->inst_cnt++; }
-	const int& getInstCount() { return this->inst_cnt; }
-
-	void MemRead(int rd, instr_type op, uint32_t addr);
-	void MemWrite(instr_type op, uint32_t addr, uint32_t data);
-	void MemReadRespHandler(int rd, MemReadRespPacket* pkt);
-	void MemWriteRespHandler();
+	void        printRegfile();
+	instr       fetchInstr(uint32_t _pc);
+	std::string instrToString(instr_type _op);
+	void        processNxtInstr();
+	void        processInstr(const instr& _i);
+	void        processInstr(uint32_t _rd, uint32_t _value);
+	void        memRead(int _rd, instr_type _op, uint32_t _addr);
+	void        memWrite(instr_type _op, uint32_t _addr, uint32_t _data);
+	void        memReadRespHandler(int _rd, MemReadRespPacket* _pkt);
+	void        memWriteRespHandler();
 
 private:
 	instr*   imem;
@@ -68,4 +66,4 @@ private:
 	int      inst_cnt;
 };
 
-#endif  // SRC_TESTEMULATOR_INCLUDE_CPUEMULATOR_HH_
+#endif

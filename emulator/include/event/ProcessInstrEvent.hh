@@ -14,33 +14,31 @@
  * limitations under the License.
  */
 
-#ifndef SRC_TESTEMULATOR_INCLUDE_PROCESSINSTREVENT_HH_
-#define SRC_TESTEMULATOR_INCLUDE_PROCESSINSTREVENT_HH_
+#ifndef EMULATOR_INCLUDE_EVENT_PROCESSINSTREVENT_HH_
+#define EMULATOR_INCLUDE_EVENT_PROCESSINSTREVENT_HH_
 
-#include "ACALSim.hh"
-using namespace acalsim;
-
-#include "CPUEmulator.hh"
+#include "CPU.hh"
 #include "DataStruct.hh"
 
-class ProcessInstrEvent : public SimEvent {
+class ProcessInstrEvent : public acalsim::SimEvent {
 public:
-	ProcessInstrEvent(int _id, SimModule* _sim, instr& _instr)
-	    : SimEvent("ProcessInstrEvent" + std::to_string(_id)), sim(_sim), inst(_instr) {
+	ProcessInstrEvent(int _id, acalsim::SimModule* _sim, instr& _instr)
+	    : acalsim::SimEvent("ProcessInstrEvent" + std::to_string(_id)), sim(_sim), inst(_instr) {
 		this->clearFlags(Managed);
 	}
 	~ProcessInstrEvent() {}
 	ProcessInstrEvent() {}
 
-	void renew(int _id, SimModule* _sim, instr _instr) {
+	void renew(int _id, acalsim::SimModule* _sim, instr _instr) {
+		this->SimEvent::renew();
 		this->sim  = _sim;
 		this->inst = _instr;
 	}
 	void process() override;
 
 private:
-	SimModule* sim;
-	instr      inst;
+	acalsim::SimModule* sim;
+	instr               inst;
 };
 
 #endif

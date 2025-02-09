@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef SRC_TESTEMULATOR_INCLUDE_DATAMEMORY_HH_
-#define SRC_TESTEMULATOR_INCLUDE_DATAMEMORY_HH_
+#ifndef EMULATOR_INCLUDE_DATAMEMORY_HH_
+#define EMULATOR_INCLUDE_DATAMEMORY_HH_
 
 #include <string>
 
@@ -24,12 +24,10 @@
 #include "DataStruct.hh"
 #include "MemPacket.hh"
 
-using namespace acalsim;
-
 /**
  * @class A simple memory model
  */
-class DataMemory : public SimModule, public BaseMemory {
+class DataMemory : public acalsim::SimModule, public BaseMemory {
 public:
 	/**
 	 * @brief Construct a new Memory object
@@ -37,22 +35,14 @@ public:
 	 * @param _name The name of memory.
 	 * @param _size The size of memory.
 	 */
-	DataMemory(std::string _name, size_t _size) : SimModule(_name), BaseMemory(_size) {}
+	DataMemory(std::string _name, size_t _size) : acalsim::SimModule(_name), BaseMemory(_size) {}
 
 	~DataMemory() {}
 
 	void initMem(char* _data, size_t _size) { this->writeData(_data, (uint32_t)0x0, _size); }
 
-	void init() override {
-		size_t mem_size = this->getSize();
-		char*  zeroBuf  = new char[mem_size]();
-		this->initMem(zeroBuf, mem_size);
+	void memReadReqHandler(acalsim::Tick _when, MemReadReqPacket* _memReqPkt);
 
-		delete[] zeroBuf;
-	}
-
-	void memReadReqHandler(Tick _when, MemReadReqPacket* _memReqPkt);
-
-	void memWriteReqHandler(Tick _when, MemWriteReqPacket* _memReqPkt);
+	void memWriteReqHandler(acalsim::Tick _when, MemWriteReqPacket* _memReqPkt);
 };
-#endif  // SRC_TESTEMULATOR_INCLUDE_DATAMEMORY_HH_
+#endif

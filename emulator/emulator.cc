@@ -14,28 +14,13 @@
  * limitations under the License.
  */
 
-/* --------------------------------------------------------------------------------------
- *  A test template to demonstrate how to create your own single-thread simulator using this framework
- *  Step 1. Inherit SimModule to create your own module class
- *  Step 2. Inherit STSimBase to create your own simulator class
- *  Step 3. instantiate a top-level simulation instance and call the following APIs in turn
- *          1) STSim::init(); //Pre-Simulation Initialization
- *          2) STSim::run();  //Simulation main loop
- *          3) STSim::finish(); // Post-Simulation cleanup
- * --------------------------------------------------------------------------------------*/
-
 #include "ACALSim.hh"
-using namespace acalsim;
-
-#include "SystemTop.hh"
+#include "EmulatorTop.hh"
 
 int main(int argc, char** argv) {
-	// Step 3. instantiate a top-level simulation instance
-	// Remember 1) to cast the top-level instance to the SimTop* type and set it to the global variable top
-	// 2) Pass your own simulator class type to the STSim class template
-	top = std::make_shared<SystemTop>("SystemSim", "emulator/configs.json");
-	top->init(argc, argv);
-	top->run();
-	top->finish();
+	acalsim::top = std::make_shared<EmulatorTop>("EmulatorTop", "emulator/configs.json");
+	acalsim::top->init(argc, argv);
+	acalsim::top->run();
+	acalsim::top->finish();
 	return 0;
 }

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef SRC_TESTEMULATOR_INCLUDE_DATASTRUCT_HH_
-#define SRC_TESTEMULATOR_INCLUDE_DATASTRUCT_HH_
+#ifndef EMULATOR_INCLUDE_DATASTRUCT_HH_
+#define EMULATOR_INCLUDE_DATASTRUCT_HH_
 
 #include <stdint.h>
 #include <stdlib.h>

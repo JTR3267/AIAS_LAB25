@@ -17,6 +17,6 @@
 #include "event/ProcessInstrEvent.hh"
 
 void ProcessInstrEvent::process() {
-	auto cpu = (CPUEmulator*)(this->sim);
-	cpu->ProcessInstr(this->inst);
+	auto cpu = (CPU*)(this->sim);
+	cpu->processInstr(this->inst);
 }

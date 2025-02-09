@@ -18,36 +18,34 @@
 
 #include "DataMemory.hh"
 
-using namespace acalsim;
-
-void MemReadReqPacket::visit(Tick when, SimModule& module) {
-	if (dynamic_cast<DataMemory*>((SimModule*)(&module))) {
-		dynamic_cast<DataMemory*>((SimModule*)(&module))->memReadReqHandler(when, this);
+void MemReadReqPacket::visit(acalsim::Tick _when, acalsim::SimModule& _module) {
+	if (dynamic_cast<DataMemory*>((acalsim::SimModule*)(&_module))) {
+		dynamic_cast<DataMemory*>((acalsim::SimModule*)(&_module))->memReadReqHandler(_when, this);
 	} else {
 		CLASS_ERROR << "Invalid module type!";
 	}
 }
 
-void MemReadReqPacket::visit(Tick when, SimBase& simulator) {
+void MemReadReqPacket::visit(acalsim::Tick _when, acalsim::SimBase& _simulator) {
 	CLASS_ERROR << "void MemReadReqPacket::visit (SimBase& simulator) is not implemented yet!";
 }
 
-void MemWriteReqPacket::visit(Tick when, SimModule& module) {
-	if (dynamic_cast<DataMemory*>((SimModule*)(&module))) {
-		dynamic_cast<DataMemory*>((SimModule*)(&module))->memWriteReqHandler(when, this);
+void MemWriteReqPacket::visit(acalsim::Tick _when, acalsim::SimModule& _module) {
+	if (dynamic_cast<DataMemory*>((acalsim::SimModule*)(&_module))) {
+		dynamic_cast<DataMemory*>((acalsim::SimModule*)(&_module))->memWriteReqHandler(_when, this);
 	} else {
 		CLASS_ERROR << "Invalid module type!";
 	}
 }
 
-void MemWriteReqPacket::visit(Tick when, SimBase& simulator) {
+void MemWriteReqPacket::visit(acalsim::Tick _when, acalsim::SimBase& _simulator) {
 	CLASS_ERROR << "void MemWriteReqPacket::visit (SimBase& simulator) is not implemented yet!";
 }
 
-void MemReadRespPacket::visit(Tick when, SimModule& module) {
+void MemReadRespPacket::visit(acalsim::Tick _when, acalsim::SimModule& _module) {
 	CLASS_ERROR << "void MemReadRespPacket::visit (SimModule& module) is not implemented yet!";
 }
 
-void MemReadRespPacket::visit(Tick when, SimBase& simulator) {
+void MemReadRespPacket::visit(acalsim::Tick _when, acalsim::SimBase& _simulator) {
 	CLASS_ERROR << "void MemReadRespPacket::visit (SimBase& simulator) is not implemented yet!";
 }

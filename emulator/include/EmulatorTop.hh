@@ -13,25 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef EMULATOR_INCLUDE_EMULATORTOP_HH_
+#define EMULATOR_INCLUDE_EMULATORTOP_HH_
 
 #include "ACALSim.hh"
-using namespace acalsim;
+#include "Emulator.hh"
+#include "EmulatorConfig.hh"
 
-#include "System.hh"
-#include "SystemConfig.hh"
-
-class SystemTop : public STSim<System> {
+class EmulatorTop : public acalsim::STSim<Emulator> {
 public:
-	SystemTop(const std::string _name = "SystemSim", const std::string _configFile = "")
-	    : STSim<System>(_name, _configFile) {
-		this->traceCntr.run(0, &SimTraceContainer::setFilePath, "trace", "src/testEmulator/trace");
+	EmulatorTop(const std::string _name = "EmulatorTop", const std::string _configFile = "")
+	    : acalsim::STSim<Emulator>(_name, _configFile) {
+		this->traceCntr.run(0, &acalsim::SimTraceContainer::setFilePath, "trace", "src/testEmulator/trace");
 	}
 
 	void registerConfigs() override {
-		/* 1. instantiate "SystemConfig" in constructor of simulator. (Use long name to describe ConfigBase) */
-		auto config = new system_config::SystemConfig("System configuration");
-
-		/* 2. add "SystemConfig" into configContainer (Use short name to index ConfigBase) */
-		this->addConfig("System", config);
+		auto config = new EmulatorConfig("Emulator configuration");
+		this->addConfig("Emulator", config);
 	}
 };
+
+#endif

@@ -29,13 +29,13 @@ get_filename_component(
 set(APP_LIB emulator)
 
 set(LIBS_SRCS
-    CPUEmulator.cc
+    CPU.cc
     event/ProcessInstrEvent.cc
     event/MemReqEvent.cc
     MemPacket.cc
     BaseMemory.cc
     DataMemory.cc
-    System.cc
+    Emulator.cc
 )
 # ##########################################################################
 # # Build rules
