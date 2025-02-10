@@ -24,8 +24,9 @@
 #include "event/ProcessInstrEvent.hh"
 
 CPU::CPU(std::string _name) : acalsim::SimModule(_name), pc(0), inst_cnt(0) {
-	this->imem = (instr*)malloc(DATA_OFFSET * sizeof(instr) / 4);
-	for (int i = 0; i < DATA_OFFSET / 4; i++) {
+	auto data_offset = acalsim::top->getParameter<int>("Emulator", "data_offset");
+	this->imem       = (instr*)malloc(data_offset * sizeof(instr) / 4);
+	for (int i = 0; i < data_offset / 4; i++) {
 		this->imem[i].op      = UNIMPL;
 		this->imem[i].a1.type = OPTYPE_NONE;
 		this->imem[i].a2.type = OPTYPE_NONE;
@@ -140,7 +141,8 @@ void CPU::processInstr(const instr& _i, uint32_t _mem_data) {
 	if (nxt_state == PROCESS) {
 		CLASS_INFO << "Instruction " << this->instrToString(_i.op)
 		           << " is completed at Tick = " << acalsim::top->getGlobalTick() << " | PC = " << this->pc;
-		this->pc = pc_next % MEM_BYTES;
+		auto memory_size = acalsim::top->getParameter<int>("Emulator", "memory_size");
+		this->pc         = pc_next % memory_size;
 		this->processNxtInstr();
 
 	} else if (nxt_state == END) {

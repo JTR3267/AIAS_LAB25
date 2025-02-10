@@ -28,9 +28,11 @@ Emulator::Emulator(std::string _name) : acalsim::STSimBase(_name), label_count(0
 	CLASS_INFO << "memory_write_latency : "
 	           << acalsim::top->getParameter<acalsim::Tick>("Emulator", "memory_write_latency") << " Ticks";
 
-	this->labels     = (label_loc*)malloc(MAX_LABEL_COUNT * sizeof(label_loc));
-	this->src.offset = 0;
-	this->src.src    = (char*)malloc(sizeof(char) * MAX_SRC_LEN);
+	auto max_label_count = acalsim::top->getParameter<int>("Emulator", "max_label_count");
+	auto max_src_len     = acalsim::top->getParameter<int>("Emulator", "max_src_len");
+	this->labels         = (label_loc*)malloc(max_label_count * sizeof(label_loc));
+	this->src.offset     = 0;
+	this->src.src        = (char*)malloc(sizeof(char) * max_src_len);
 }
 
 void Emulator::registerModules() {
@@ -91,8 +93,9 @@ void Emulator::append_source(const char* _op, const char* _a1, const char* _a2, 
 	} else {
 		return;
 	}
-	int slen = strlen(tbuf);
-	if (slen + _src->offset < MAX_SRC_LEN) {
+	int  slen        = strlen(tbuf);
+	auto max_src_len = acalsim::top->getParameter<int>("Emulator", "max_src_len");
+	if (slen + _src->offset < max_src_len) {
 		strncpy(_src->src + _src->offset, tbuf, strlen(tbuf));
 
 		_i->psrc = _src->src + _src->offset;
@@ -174,11 +177,13 @@ int Emulator::parse_assembler_directive(int _line, char* _ftok, uint8_t* _mem, i
 	if (0 == memcmp(_ftok, ".text", strlen(_ftok))) {
 		if (strtok(NULL, " \t\r\n")) { print_syntax_error(_line, "Tokens after assembler directive"); }
 		// cur_section = SECTION_TEXT;
-		_memoff = TEXT_OFFSET;
+		auto text_offset = acalsim::top->getParameter<int>("Emulator", "text_offset");
+		_memoff          = text_offset;
 		// printf( "starting text section\n" );
 	} else if (0 == memcmp(_ftok, ".data", strlen(_ftok))) {
 		// cur_section = SECTION_TEXT;
-		_memoff = DATA_OFFSET;
+		auto data_offset = acalsim::top->getParameter<int>("Emulator", "data_offset");
+		_memoff          = data_offset;
 		// printf( "starting data section\n" );
 	} else if (0 == memcmp(_ftok, ".byte", strlen(_ftok)))
 		_memoff = parse_data_element(_line, 1, _mem, _memoff);
@@ -194,7 +199,8 @@ int Emulator::parse_assembler_directive(int _line, char* _ftok, uint8_t* _mem, i
 }
 
 int Emulator::parse_instr(int _line, char* _ftok, instr* _imem, int _memoff, label_loc* _labels, source* _src) {
-	if (_memoff + 4 > DATA_OFFSET) {
+	auto data_offset = acalsim::top->getParameter<int>("Emulator", "data_offset");
+	if (_memoff + 4 > data_offset) {
 		printf("Instructions in data segment!\n");
 		exit(1);
 	}
@@ -213,7 +219,7 @@ int Emulator::parse_instr(int _line, char* _ftok, instr* _imem, int _memoff, lab
 		i->op         = op;
 		i->orig_line  = _line;
 		append_source(_ftok, o1, o2, o3, _src, i);
-
+		auto max_label_len = acalsim::top->getParameter<int>("Emulator", "max_label_len");
 		switch (op) {
 			case UNIMPL:
 				return 1;
@@ -233,14 +239,14 @@ int Emulator::parse_instr(int _line, char* _ftok, instr* _imem, int _memoff, lab
 					i->a1.type = OPTYPE_REG;
 					i->a1.reg  = parse_reg(o1, _line);
 					i->a2.type = OPTYPE_LABEL;
-					strncpy(i->a2.label, o2, MAX_LABEL_LEN);
+					strncpy(i->a2.label, o2, max_label_len);
 				} else {  // one operand, label
 					if (!o1 || o2 || o3 || o4) print_syntax_error(_line, "Invalid format");
 
 					i->a1.type = OPTYPE_REG;
 					i->a1.reg  = 1;
 					i->a2.type = OPTYPE_LABEL;
-					strncpy(i->a2.label, o1, MAX_LABEL_LEN);
+					strncpy(i->a2.label, o1, max_label_len);
 				}
 				return 1;
 			case JALR:
@@ -300,7 +306,7 @@ int Emulator::parse_instr(int _line, char* _ftok, instr* _imem, int _memoff, lab
 				i->a1.reg  = parse_reg(o1, _line);
 				i->a2.reg  = parse_reg(o2, _line);
 				i->a3.type = OPTYPE_LABEL;
-				strncpy(i->a3.label, o3, MAX_LABEL_LEN);
+				strncpy(i->a3.label, o3, max_label_len);
 				return 1;
 			case LUI:
 			case AUIPC:  // how to deal with LSB correctly? FIXME
@@ -375,6 +381,7 @@ instr_type Emulator::parse_instr(char* _tok) {
 
 int Emulator::parse_pseudoinstructions(int _line, char* _ftok, instr* _imem, int _ioff, label_loc* _labels, char* _o1,
                                        char* _o2, char* _o3, char* _o4, source* _src) {
+	auto max_label_len = acalsim::top->getParameter<int>("Emulator", "max_label_len");
 	if (streq(_ftok, "li")) {
 		if (!_o1 || !_o2 || _o3) print_syntax_error(_line, "Invalid format");
 
@@ -428,7 +435,7 @@ int Emulator::parse_pseudoinstructions(int _line, char* _ftok, instr* _imem, int
 		i->a1.type = OPTYPE_REG;
 		i->a1.reg  = reg;
 		i->a2.type = OPTYPE_LABEL;
-		strncpy(i->a2.label, _o2, MAX_LABEL_LEN);
+		strncpy(i->a2.label, _o2, max_label_len);
 		i->orig_line = _line;
 		// append_source(ftok, o1, o2, o3, src, i); // done in normalize
 		instr* i2   = &_imem[_ioff + 1];
@@ -438,7 +445,7 @@ int Emulator::parse_pseudoinstructions(int _line, char* _ftok, instr* _imem, int
 		i2->a2.type = OPTYPE_REG;
 		i2->a2.reg  = reg;
 		i2->a3.type = OPTYPE_LABEL;
-		strncpy(i2->a3.label, _o2, MAX_LABEL_LEN);
+		strncpy(i2->a3.label, _o2, max_label_len);
 		i2->orig_line = _line;
 		// append_source(ftok, o1, o2, o3, src, i2); // done in normalize
 		return 2;
@@ -466,7 +473,7 @@ int Emulator::parse_pseudoinstructions(int _line, char* _ftok, instr* _imem, int
 		i->a1.type = OPTYPE_REG;
 		i->a1.reg  = 0;
 		i->a2.type = OPTYPE_LABEL;
-		strncpy(i->a2.label, _o1, MAX_LABEL_LEN);
+		strncpy(i->a2.label, _o1, max_label_len);
 		i->orig_line = _line;
 		append_source("j", "x0", _o1, NULL, _src, i);
 		return 1;
@@ -494,7 +501,7 @@ int Emulator::parse_pseudoinstructions(int _line, char* _ftok, instr* _imem, int
 		i->a2.type = OPTYPE_REG;
 		i->a2.reg  = 0;
 		i->a3.type = OPTYPE_LABEL;
-		strncpy(i->a3.label, _o2, MAX_LABEL_LEN);
+		strncpy(i->a3.label, _o2, max_label_len);
 		i->orig_line = _line;
 		append_source("bne", "x0", _o1, _o2, _src, i);
 		return 1;
@@ -508,7 +515,7 @@ int Emulator::parse_pseudoinstructions(int _line, char* _ftok, instr* _imem, int
 		i->a2.type = OPTYPE_REG;
 		i->a2.reg  = 0;
 		i->a3.type = OPTYPE_LABEL;
-		strncpy(i->a3.label, _o2, MAX_LABEL_LEN);
+		strncpy(i->a3.label, _o2, max_label_len);
 		i->orig_line = _line;
 		append_source("beq", "x0", _o1, _o2, _src, i);
 		return 1;
@@ -557,7 +564,7 @@ void Emulator::parse(const std::string& _file_path, uint8_t* _mem, instr* _imem,
 	CLASS_INFO << "Parsing input file";
 
 	// sectionType cur_section = SECTION_NONE;
-
+	auto max_label_len = acalsim::top->getParameter<int>("Emulator", "max_label_len");
 	char rbuf[1024];
 	while (!feof(fin)) {
 		if (!fgets(rbuf, 1024, fin)) break;
@@ -572,15 +579,16 @@ void Emulator::parse(const std::string& _file_path, uint8_t* _mem, instr* _imem,
 			_memoff = parse_assembler_directive(line, _ftok, _mem, _memoff);
 		} else if (_ftok[strlen(_ftok) - 1] == ':') {
 			_ftok[strlen(_ftok) - 1] = 0;
-			if (strlen(_ftok) >= MAX_LABEL_LEN) {
+			if (strlen(_ftok) >= max_label_len) {
 				printf("Exceeded maximum length of label: %s\n", _ftok);
 				exit(3);
 			}
-			if (_label_count >= MAX_LABEL_COUNT) {
+			auto max_label_count = acalsim::top->getParameter<int>("Emulator", "max_label_count");
+			if (_label_count >= max_label_count) {
 				printf("Exceeded maximum number of supported labels");
 				exit(3);
 			}
-			strncpy(_labels[_label_count].label, _ftok, MAX_LABEL_LEN);
+			strncpy(_labels[_label_count].label, _ftok, max_label_len);
 			_labels[_label_count].loc = _memoff;
 			_label_count++;
 			// printf( "Parsing label %s at mem %x\n", ftok, memoff );
@@ -605,7 +613,8 @@ void Emulator::parse(const std::string& _file_path, uint8_t* _mem, instr* _imem,
 }
 
 void Emulator::normalize_labels(instr* _imem, label_loc* _labels, int _label_count, source* _src) {
-	for (int i = 0; i < DATA_OFFSET / 4; i++) {
+	auto data_offset = acalsim::top->getParameter<int>("Emulator", "data_offset");
+	for (int i = 0; i < data_offset / 4; i++) {
 		instr* ii = &_imem[i];
 		if (ii->op == UNIMPL) continue;
 

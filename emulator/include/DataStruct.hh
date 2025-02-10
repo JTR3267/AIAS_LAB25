@@ -20,13 +20,7 @@
 #include <cstdint>
 #include <cstdlib>
 
-#define MEM_BYTES   0x10000
-#define TEXT_OFFSET 0
-#define DATA_OFFSET 8192
-
-#define MAX_LABEL_COUNT 128
-#define MAX_LABEL_LEN   32
-#define MAX_SRC_LEN     (1024 * 1024)
+#define MAX_LABEL_LEN 32
 
 typedef enum {
 	UNIMPL = 0,
