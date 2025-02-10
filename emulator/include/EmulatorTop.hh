@@ -16,6 +16,8 @@
 #ifndef EMULATOR_INCLUDE_EMULATORTOP_HH_
 #define EMULATOR_INCLUDE_EMULATORTOP_HH_
 
+#include <string>
+
 #include "ACALSim.hh"
 #include "Emulator.hh"
 #include "EmulatorConfig.hh"
@@ -30,6 +32,11 @@ public:
 	void registerConfigs() override {
 		auto config = new EmulatorConfig("Emulator configuration");
 		this->addConfig("Emulator", config);
+	}
+
+	void registerCLIArguments() override {
+		this->addCLIOption<std::string>("--asm_file_path", "The file path of an assembly code", "Emulator",
+		                                "asm_file_path");
 	}
 };
 

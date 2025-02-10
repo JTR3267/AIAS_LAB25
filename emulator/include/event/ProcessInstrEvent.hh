@@ -17,28 +17,23 @@
 #ifndef EMULATOR_INCLUDE_EVENT_PROCESSINSTREVENT_HH_
 #define EMULATOR_INCLUDE_EVENT_PROCESSINSTREVENT_HH_
 
-#include "CPU.hh"
+#include "ACALSim.hh"
 #include "DataStruct.hh"
+
+class CPU;
 
 class ProcessInstrEvent : public acalsim::SimEvent {
 public:
-	ProcessInstrEvent() {}
-	ProcessInstrEvent(int _id, acalsim::SimModule* _sim, instr& _instr)
-	    : acalsim::SimEvent("ProcessInstrEvent" + std::to_string(_id)), sim(_sim), inst(_instr) {
-		this->clearFlags(Managed);
-	}
-	~ProcessInstrEvent() {}
+	ProcessInstrEvent() = default;
+	ProcessInstrEvent(int _id, CPU* _cpu, instr& _instr);
+	virtual ~ProcessInstrEvent() = default;
 
-	void renew(int _id, acalsim::SimModule* _sim, instr _instr) {
-		this->SimEvent::renew();
-		this->sim  = _sim;
-		this->inst = _instr;
-	}
+	void renew(int _id, CPU* _cpu, instr _instr);
 	void process() override;
 
 private:
-	acalsim::SimModule* sim;
-	instr               inst;
+	CPU*  cpu;
+	instr inst;
 };
 
 #endif

@@ -34,29 +34,13 @@
 class Emulator : public acalsim::STSimBase {
 public:
 	Emulator(std::string _name = "Emulator");
-	~Emulator() {}
+	virtual ~Emulator() {}
+
 	void registerModules() override;
 
-	void simInit() override {
-		CLASS_INFO << name + " Emulator::simInit()!";
+	void simInit() override;
 
-		// Initialize all child modules
-		for (auto& [_, module] : this->modules) { module->init(); }
-
-		// Parse assmebly file and initialize data memory and instruction memory
-		std::string asm_file_path = acalsim::top->getParameter<std::string>("Emulator", "asm_file_path");
-
-		this->parse(asm_file_path, ((uint8_t*)this->dmem->getMemPtr()), this->cpu->getIMemPtr(), this->memoff,
-		            this->labels, this->label_count, &(this->src));
-		this->normalize_labels(this->cpu->getIMemPtr(), this->labels, this->label_count, &(this->src));
-
-		CLASS_INFO << "Simulation starts";
-		this->cpu->processNxtInstr();
-	}
-	void cleanup() override {
-		this->cpu->printRegfile();
-		CLASS_INFO << "Emulator::cleanup() " + name;
-	}
+	void cleanup() override;
 
 	// Lab7 Emulator Function Definition
 	uint32_t label_addr(char* _label, label_loc* _labels, int _label_count, int _orig_line);

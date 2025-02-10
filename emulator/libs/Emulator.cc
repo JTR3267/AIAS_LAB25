@@ -37,31 +37,46 @@ void Emulator::registerModules() {
 	size_t mem_size = acalsim::top->getParameter<int>("Emulator", "memory_size");
 
 	// create modules
-	cpu  = new CPU("CPU Emulator");
-	dmem = new DataMemory("Data Memory", mem_size);
+	this->cpu  = new CPU("CPU Emulator");
+	this->dmem = new DataMemory("Data Memory", mem_size);
 
 	// register modules
-	this->addModule(cpu);
-	this->addModule(dmem);
+	this->addModule(this->cpu);
+	this->addModule(this->dmem);
 
 	// connect modules (connected_module, master port name, slave port name)
-	cpu->addDownStream(dmem, "DSDmem");
-	dmem->addUpStream(cpu, "USCPU");
+	this->cpu->addDownStream(this->dmem, "DSDmem");
+	this->dmem->addUpStream(this->cpu, "USCPU");
 }
 
-bool Emulator::streq(char* _s, const char* _q) {
-	if (strcmp(_s, _q) == 0) return true;
+void Emulator::simInit() {
+	CLASS_INFO << name + " Emulator::simInit()!";
 
-	return false;
+	// Initialize all child modules
+	for (auto& [_, module] : this->modules) { module->init(); }
+
+	// Parse assmebly file and initialize data memory and instruction memory
+	std::string asm_file_path = acalsim::top->getParameter<std::string>("Emulator", "asm_file_path");
+
+	this->parse(asm_file_path, ((uint8_t*)this->dmem->getMemPtr()), this->cpu->getIMemPtr(), this->memoff, this->labels,
+	            this->label_count, &(this->src));
+	this->normalize_labels(this->cpu->getIMemPtr(), this->labels, this->label_count, &(this->src));
+
+	CLASS_INFO << "Simulation starts";
+	this->cpu->processNxtInstr();
 }
 
-uint32_t Emulator::signextend(uint32_t _in, int _bits) {
-	if (_in & (1 << (_bits - 1))) return ((-1) << _bits) | _in;
-	return _in;
+void Emulator::cleanup() {
+	this->cpu->printRegfile();
+	CLASS_INFO << "Emulator::cleanup() ";
 }
 
-void Emulator::print_syntax_error(int _line, const char* _msg) {
-	ERROR << "Line " << _line << ": Syntax error! " << _msg;
+uint32_t Emulator::label_addr(char* _label, label_loc* _labels, int _label_count, int _orig_line) {
+	for (int i = 0; i < _label_count; i++) {
+		if (streq(_labels[i].label, _label)) return _labels[i].loc;
+	}
+	print_syntax_error(_orig_line, "Undefined label");
+	return -1;
 }
 
 void Emulator::append_source(const char* _op, const char* _a1, const char* _a2, const char* _a3, source* _src,
@@ -154,23 +169,6 @@ void Emulator::parse_mem(char* _tok, int* _reg, uint32_t* _imm, int _bits, int _
 	*_reg      = parse_reg(regs, _line);
 }
 
-int Emulator::parse_data_element(int _line, int _size, uint8_t* _mem, int _offset) {
-	while (char* t = strtok(NULL, " \t\r\n")) {
-		errno      = 0;
-		int64_t v  = strtol(t, NULL, 0);
-		int64_t vs = (v >> (_size * 8));
-		if (errno == ERANGE || (vs > 0 && vs != -1)) {
-			printf("Value out of bounds at line %d : %s\n", _line, t);
-			exit(2);
-		}
-		// printf ( "parse_data_element %d: %d %ld %d %d\n", line, size, v, errno, sizeof(long int));
-		memcpy(&_mem[_offset], &v, _size);
-		_offset += _size;
-		// strtok(NULL, ",");
-	}
-	return _offset;
-}
-
 int Emulator::parse_assembler_directive(int _line, char* _ftok, uint8_t* _mem, int _memoff) {
 	// printf( "assembler directive %s\n", ftok );
 	if (0 == memcmp(_ftok, ".text", strlen(_ftok))) {
@@ -193,6 +191,186 @@ int Emulator::parse_assembler_directive(int _line, char* _ftok, uint8_t* _mem, i
 		exit(3);
 	}
 	return _memoff;
+}
+
+int Emulator::parse_instr(int _line, char* _ftok, instr* _imem, int _memoff, label_loc* _labels, source* _src) {
+	if (_memoff + 4 > DATA_OFFSET) {
+		printf("Instructions in data segment!\n");
+		exit(1);
+	}
+	char* o1 = strtok(NULL, " \t\r\n,");
+	char* o2 = strtok(NULL, " \t\r\n,");
+	char* o3 = strtok(NULL, " \t\r\n,");
+	char* o4 = strtok(NULL, " \t\r\n,");
+
+	int ioff  = _memoff / 4;
+	int pscnt = parse_pseudoinstructions(_line, _ftok, _imem, ioff, _labels, o1, o2, o3, o4, _src);
+	if (pscnt > 0) {
+		return pscnt;
+	} else {
+		instr*     i  = &_imem[ioff];
+		instr_type op = parse_instr(_ftok);
+		i->op         = op;
+		i->orig_line  = _line;
+		append_source(_ftok, o1, o2, o3, _src, i);
+
+		switch (op) {
+			case UNIMPL:
+				return 1;
+
+				// instruction added
+				//  case MUL:
+				//      if ( !o1 || !o2 || !o3 || o4 ) print_syntax_error( line,  "Invalid format" );
+				//  	    i->a1.reg = parse_reg(o1 , line);
+				//  	    i->a2.reg = parse_reg(o2 , line);
+				//  	    i->a3.reg = parse_reg(o3 , line);
+				//      return 1;
+				//****************
+
+			case JAL:
+				if (o2) {  // two operands, reg, label
+					if (!o1 || !o2 || o3 || o4) print_syntax_error(_line, "Invalid format");
+					i->a1.type = OPTYPE_REG;
+					i->a1.reg  = parse_reg(o1, _line);
+					i->a2.type = OPTYPE_LABEL;
+					strncpy(i->a2.label, o2, MAX_LABEL_LEN);
+				} else {  // one operand, label
+					if (!o1 || o2 || o3 || o4) print_syntax_error(_line, "Invalid format");
+
+					i->a1.type = OPTYPE_REG;
+					i->a1.reg  = 1;
+					i->a2.type = OPTYPE_LABEL;
+					strncpy(i->a2.label, o1, MAX_LABEL_LEN);
+				}
+				return 1;
+			case JALR:
+				if (!o1 || !o2 || o3 || o4) print_syntax_error(_line, "Invalid format");
+				i->a1.reg = parse_reg(o1, _line);
+				parse_mem(o2, &i->a2.reg, &i->a3.imm, 12, _line);
+				return 1;
+			case ADD:
+			case SUB:
+			case SLT:
+			case SLTU:
+			case AND:
+			case OR:
+			case XOR:
+			case SLL:
+			case SRL:
+			case SRA:
+				if (!o1 || !o2 || !o3 || o4) print_syntax_error(_line, "Invalid format");
+				i->a1.reg = parse_reg(o1, _line);
+				i->a2.reg = parse_reg(o2, _line);
+				i->a3.reg = parse_reg(o3, _line);
+				return 1;
+			case LB:
+			case LBU:
+			case LH:
+			case LHU:
+			case LW:
+			case SB:
+			case SH:
+			case SW:
+				if (!o1 || !o2 || o3 || o4) print_syntax_error(_line, "Invalid format");
+				i->a1.reg = parse_reg(o1, _line);
+				parse_mem(o2, &i->a2.reg, &i->a3.imm, 12, _line);
+				return 1;
+			case ADDI:
+			case SLTI:
+			case SLTIU:
+			case ANDI:
+			case ORI:
+			case XORI:
+			case SLLI:
+			case SRLI:
+			case SRAI:
+				if (!o1 || !o2 || !o3 || o4) print_syntax_error(_line, "Invalid format");
+
+				i->a1.reg = parse_reg(o1, _line);
+				i->a2.reg = parse_reg(o2, _line);
+				i->a3.imm = signextend(parse_imm(o3, 12, _line), 12);
+				return 1;
+			case BEQ:
+			case BGE:
+			case BGEU:
+			case BLT:
+			case BLTU:
+			case BNE:
+				if (!o1 || !o2 || !o3 || o4) print_syntax_error(_line, "Invalid format");
+				i->a1.reg  = parse_reg(o1, _line);
+				i->a2.reg  = parse_reg(o2, _line);
+				i->a3.type = OPTYPE_LABEL;
+				strncpy(i->a3.label, o3, MAX_LABEL_LEN);
+				return 1;
+			case LUI:
+			case AUIPC:  // how to deal with LSB correctly? FIXME
+				if (!o1 || !o2 || o3 || o4) print_syntax_error(_line, "Invalid format");
+				i->a1.reg = parse_reg(o1, _line);
+				i->a2.imm = (parse_imm(o2, 20, _line));
+				return 1;
+			case HCF: return 1;
+		}
+	}
+	return 1;
+}
+
+instr_type Emulator::parse_instr(char* _tok) {
+	// instruction added
+	// if ( streq(tok , "mul")) return MUL;
+	//*****************
+
+	if (streq(_tok, "add")) return ADD;
+	if (streq(_tok, "sub")) return SUB;
+	if (streq(_tok, "slt")) return SLT;
+	if (streq(_tok, "sltu")) return SLTU;
+	if (streq(_tok, "and")) return AND;
+	if (streq(_tok, "or")) return OR;
+	if (streq(_tok, "xor")) return XOR;
+	if (streq(_tok, "sll")) return SLL;
+	if (streq(_tok, "srl")) return SRL;
+	if (streq(_tok, "sra")) return SRA;
+
+	// 1r, imm -> 1r
+	if (streq(_tok, "addi")) return ADDI;
+	if (streq(_tok, "slti")) return SLTI;
+	if (streq(_tok, "sltiu")) return SLTIU;
+	if (streq(_tok, "andi")) return ANDI;
+	if (streq(_tok, "ori")) return ORI;
+	if (streq(_tok, "xori")) return XORI;
+	if (streq(_tok, "slli")) return SLLI;
+	if (streq(_tok, "srli")) return SRLI;
+	if (streq(_tok, "srai")) return SRAI;
+
+	// load/store
+	if (streq(_tok, "lb")) return LB;
+	if (streq(_tok, "lbu")) return LBU;
+	if (streq(_tok, "lh")) return LH;
+	if (streq(_tok, "lhu")) return LHU;
+	if (streq(_tok, "lw")) return LW;
+	if (streq(_tok, "sb")) return SB;
+	if (streq(_tok, "sh")) return SH;
+	if (streq(_tok, "sw")) return SW;
+
+	// branch
+	if (streq(_tok, "beq")) return BEQ;
+	if (streq(_tok, "bge")) return BGE;
+	if (streq(_tok, "bgeu")) return BGEU;
+	if (streq(_tok, "blt")) return BLT;
+	if (streq(_tok, "bltu")) return BLTU;
+	if (streq(_tok, "bne")) return BNE;
+
+	// jal
+	if (streq(_tok, "jal")) return JAL;
+	if (streq(_tok, "jalr")) return JALR;
+
+	// lui
+	if (streq(_tok, "auipc")) return AUIPC;
+	if (streq(_tok, "lui")) return LUI;
+
+	// unimpl
+	// if ( streq(tok, "unimpl") ) return UNIMPL;
+	if (streq(_tok, "hcf")) return HCF;
+	return UNIMPL;
 }
 
 int Emulator::parse_pseudoinstructions(int _line, char* _ftok, instr* _imem, int _ioff, label_loc* _labels, char* _o1,
@@ -338,184 +516,36 @@ int Emulator::parse_pseudoinstructions(int _line, char* _ftok, instr* _imem, int
 	return 0;
 }
 
-instr_type Emulator::parse_instr(char* _tok) {
-	// instruction added
-	// if ( streq(tok , "mul")) return MUL;
-	//*****************
-
-	if (streq(_tok, "add")) return ADD;
-	if (streq(_tok, "sub")) return SUB;
-	if (streq(_tok, "slt")) return SLT;
-	if (streq(_tok, "sltu")) return SLTU;
-	if (streq(_tok, "and")) return AND;
-	if (streq(_tok, "or")) return OR;
-	if (streq(_tok, "xor")) return XOR;
-	if (streq(_tok, "sll")) return SLL;
-	if (streq(_tok, "srl")) return SRL;
-	if (streq(_tok, "sra")) return SRA;
-
-	// 1r, imm -> 1r
-	if (streq(_tok, "addi")) return ADDI;
-	if (streq(_tok, "slti")) return SLTI;
-	if (streq(_tok, "sltiu")) return SLTIU;
-	if (streq(_tok, "andi")) return ANDI;
-	if (streq(_tok, "ori")) return ORI;
-	if (streq(_tok, "xori")) return XORI;
-	if (streq(_tok, "slli")) return SLLI;
-	if (streq(_tok, "srli")) return SRLI;
-	if (streq(_tok, "srai")) return SRAI;
-
-	// load/store
-	if (streq(_tok, "lb")) return LB;
-	if (streq(_tok, "lbu")) return LBU;
-	if (streq(_tok, "lh")) return LH;
-	if (streq(_tok, "lhu")) return LHU;
-	if (streq(_tok, "lw")) return LW;
-	if (streq(_tok, "sb")) return SB;
-	if (streq(_tok, "sh")) return SH;
-	if (streq(_tok, "sw")) return SW;
-
-	// branch
-	if (streq(_tok, "beq")) return BEQ;
-	if (streq(_tok, "bge")) return BGE;
-	if (streq(_tok, "bgeu")) return BGEU;
-	if (streq(_tok, "blt")) return BLT;
-	if (streq(_tok, "bltu")) return BLTU;
-	if (streq(_tok, "bne")) return BNE;
-
-	// jal
-	if (streq(_tok, "jal")) return JAL;
-	if (streq(_tok, "jalr")) return JALR;
-
-	// lui
-	if (streq(_tok, "auipc")) return AUIPC;
-	if (streq(_tok, "lui")) return LUI;
-
-	// unimpl
-	// if ( streq(tok, "unimpl") ) return UNIMPL;
-	if (streq(_tok, "hcf")) return HCF;
-	return UNIMPL;
+int Emulator::parse_data_element(int _line, int _size, uint8_t* _mem, int _offset) {
+	while (char* t = strtok(NULL, " \t\r\n")) {
+		errno      = 0;
+		int64_t v  = strtol(t, NULL, 0);
+		int64_t vs = (v >> (_size * 8));
+		if (errno == ERANGE || (vs > 0 && vs != -1)) {
+			printf("Value out of bounds at line %d : %s\n", _line, t);
+			exit(2);
+		}
+		// printf ( "parse_data_element %d: %d %ld %d %d\n", line, size, v, errno, sizeof(long int));
+		memcpy(&_mem[_offset], &v, _size);
+		_offset += _size;
+		// strtok(NULL, ",");
+	}
+	return _offset;
 }
 
-int Emulator::parse_instr(int _line, char* _ftok, instr* _imem, int _memoff, label_loc* _labels, source* _src) {
-	if (_memoff + 4 > DATA_OFFSET) {
-		printf("Instructions in data segment!\n");
-		exit(1);
-	}
-	char* o1 = strtok(NULL, " \t\r\n,");
-	char* o2 = strtok(NULL, " \t\r\n,");
-	char* o3 = strtok(NULL, " \t\r\n,");
-	char* o4 = strtok(NULL, " \t\r\n,");
+void Emulator::print_syntax_error(int _line, const char* _msg) {
+	ERROR << "Line " << _line << ": Syntax error! " << _msg;
+}
 
-	int ioff  = _memoff / 4;
-	int pscnt = parse_pseudoinstructions(_line, _ftok, _imem, ioff, _labels, o1, o2, o3, o4, _src);
-	if (pscnt > 0) {
-		return pscnt;
-	} else {
-		instr*     i  = &_imem[ioff];
-		instr_type op = parse_instr(_ftok);
-		i->op         = op;
-		i->orig_line  = _line;
-		append_source(_ftok, o1, o2, o3, _src, i);
+bool Emulator::streq(char* _s, const char* _q) {
+	if (strcmp(_s, _q) == 0) return true;
 
-		switch (op) {
-			case UNIMPL:
-				return 1;
+	return false;
+}
 
-				// instruction added
-				//  case MUL:
-				//      if ( !o1 || !o2 || !o3 || o4 ) print_syntax_error( line,  "Invalid format" );
-				//  	    i->a1.reg = parse_reg(o1 , line);
-				//  	    i->a2.reg = parse_reg(o2 , line);
-				//  	    i->a3.reg = parse_reg(o3 , line);
-				//      return 1;
-				//****************
-
-			case JAL:
-				if (o2) {  // two operands, reg, label
-					if (!o1 || !o2 || o3 || o4) print_syntax_error(_line, "Invalid format");
-					i->a1.type = OPTYPE_REG;
-					i->a1.reg  = parse_reg(o1, _line);
-					i->a2.type = OPTYPE_LABEL;
-					strncpy(i->a2.label, o2, MAX_LABEL_LEN);
-				} else {  // one operand, label
-					if (!o1 || o2 || o3 || o4) print_syntax_error(_line, "Invalid format");
-
-					i->a1.type = OPTYPE_REG;
-					i->a1.reg  = 1;
-					i->a2.type = OPTYPE_LABEL;
-					strncpy(i->a2.label, o1, MAX_LABEL_LEN);
-				}
-				return 1;
-			case JALR:
-				if (!o1 || !o2 || o3 || o4) print_syntax_error(_line, "Invalid format");
-				i->a1.reg = parse_reg(o1, _line);
-				parse_mem(o2, &i->a2.reg, &i->a3.imm, 12, _line);
-				return 1;
-			case ADD:
-			case SUB:
-			case SLT:
-			case SLTU:
-			case AND:
-			case OR:
-			case XOR:
-			case SLL:
-			case SRL:
-			case SRA:
-				if (!o1 || !o2 || !o3 || o4) print_syntax_error(_line, "Invalid format");
-				i->a1.reg = parse_reg(o1, _line);
-				i->a2.reg = parse_reg(o2, _line);
-				i->a3.reg = parse_reg(o3, _line);
-				return 1;
-			case LB:
-			case LBU:
-			case LH:
-			case LHU:
-			case LW:
-			case SB:
-			case SH:
-			case SW:
-				if (!o1 || !o2 || o3 || o4) print_syntax_error(_line, "Invalid format");
-				i->a1.reg = parse_reg(o1, _line);
-				parse_mem(o2, &i->a2.reg, &i->a3.imm, 12, _line);
-				return 1;
-			case ADDI:
-			case SLTI:
-			case SLTIU:
-			case ANDI:
-			case ORI:
-			case XORI:
-			case SLLI:
-			case SRLI:
-			case SRAI:
-				if (!o1 || !o2 || !o3 || o4) print_syntax_error(_line, "Invalid format");
-
-				i->a1.reg = parse_reg(o1, _line);
-				i->a2.reg = parse_reg(o2, _line);
-				i->a3.imm = signextend(parse_imm(o3, 12, _line), 12);
-				return 1;
-			case BEQ:
-			case BGE:
-			case BGEU:
-			case BLT:
-			case BLTU:
-			case BNE:
-				if (!o1 || !o2 || !o3 || o4) print_syntax_error(_line, "Invalid format");
-				i->a1.reg  = parse_reg(o1, _line);
-				i->a2.reg  = parse_reg(o2, _line);
-				i->a3.type = OPTYPE_LABEL;
-				strncpy(i->a3.label, o3, MAX_LABEL_LEN);
-				return 1;
-			case LUI:
-			case AUIPC:  // how to deal with LSB correctly? FIXME
-				if (!o1 || !o2 || o3 || o4) print_syntax_error(_line, "Invalid format");
-				i->a1.reg = parse_reg(o1, _line);
-				i->a2.imm = (parse_imm(o2, 20, _line));
-				return 1;
-			case HCF: return 1;
-		}
-	}
-	return 1;
+uint32_t Emulator::signextend(uint32_t _in, int _bits) {
+	if (_in & (1 << (_bits - 1))) return ((-1) << _bits) | _in;
+	return _in;
 }
 
 void Emulator::parse(const std::string& _file_path, uint8_t* _mem, instr* _imem, int& _memoff, label_loc* _labels,
@@ -572,13 +602,6 @@ void Emulator::parse(const std::string& _file_path, uint8_t* _mem, instr* _imem,
 			_memoff += count * 4;
 		}
 	}
-}
-
-uint32_t Emulator::label_addr(char* _label, label_loc* _labels, int _label_count, int _orig_line) {
-	for (int i = 0; i < _label_count; i++) {
-		if (streq(_labels[i].label, _label)) return _labels[i].loc;
-	}
-	print_syntax_error(_orig_line, "Undefined label");
 }
 
 void Emulator::normalize_labels(instr* _imem, label_loc* _labels, int _label_count, source* _src) {

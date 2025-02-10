@@ -16,4 +16,15 @@
 
 #include "event/MemReqEvent.hh"
 
-void MemReqEvent::process() { callee->accept(acalsim::top->getGlobalTick(), *memReqPkt); }
+#include "DataMemory.hh"
+
+MemReqEvent::MemReqEvent(DataMemory* _callee, acalsim::SimPacket* _memReqPkt)
+    : acalsim::SimEvent("MemReqEvent"), callee(_callee), memReqPkt(_memReqPkt) {}
+
+void MemReqEvent::renew(DataMemory* _callee, acalsim::SimPacket* _memReqPkt) {
+	this->acalsim::SimEvent::renew();
+	this->callee    = _callee;
+	this->memReqPkt = _memReqPkt;
+}
+
+void MemReqEvent::process() { this->callee->accept(acalsim::top->getGlobalTick(), *this->memReqPkt); }

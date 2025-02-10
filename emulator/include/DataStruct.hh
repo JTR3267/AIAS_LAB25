@@ -17,8 +17,8 @@
 #ifndef EMULATOR_INCLUDE_DATASTRUCT_HH_
 #define EMULATOR_INCLUDE_DATASTRUCT_HH_
 
-#include <stdint.h>
-#include <stdlib.h>
+#include <cstdint>
+#include <cstdlib>
 
 #define MEM_BYTES   0x10000
 #define TEXT_OFFSET 0
@@ -30,11 +30,6 @@
 
 typedef enum {
 	UNIMPL = 0,
-
-	// instruction added
-	// MUL,
-	//*****************
-
 	ADD,
 	ADDI,
 	AND,

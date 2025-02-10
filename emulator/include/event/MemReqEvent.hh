@@ -18,23 +18,16 @@
 #define EMULATOR_INCLUDE_EVENT_MEMREQEVENT_HH_
 
 #include "ACALSim.hh"
-#include "DataMemory.hh"
-#include "MemPacket.hh"
+
+class DataMemory;
 
 class MemReqEvent : public acalsim::SimEvent {
 public:
-	MemReqEvent() {}
-	MemReqEvent(DataMemory* _callee, acalsim::SimPacket* _memReqPkt)
-	    : acalsim::SimEvent("MemReqEvent"), callee(_callee), memReqPkt(_memReqPkt) {
-		this->clearFlags(this->Managed);
-	}
-	~MemReqEvent() {}
+	MemReqEvent() = default;
+	MemReqEvent(DataMemory* _callee, acalsim::SimPacket* _memReqPkt);
+	virtual ~MemReqEvent() = default;
 
-	void renew(DataMemory* _callee, acalsim::SimPacket* _memReqPkt) {
-		this->SimEvent::renew();
-		this->callee    = _callee;
-		this->memReqPkt = _memReqPkt;
-	}
+	void renew(DataMemory* _callee, acalsim::SimPacket* _memReqPkt);
 	void process() override;
 
 private:

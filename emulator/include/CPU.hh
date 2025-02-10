@@ -22,41 +22,30 @@
 #include "ACALSim.hh"
 #include "DataStruct.hh"
 #include "MemPacket.hh"
-#include "event/MemReqEvent.hh"
-#include "event/ProcessInstrEvent.hh"
 
 /**
  * @class A CPU model integrated with CPU ISA Emulator
  */
 class CPU : public acalsim::SimModule {
 public:
-	CPU(std::string _name) : acalsim::SimModule(_name), pc(0), inst_cnt(0) {
-		imem = (instr*)malloc(DATA_OFFSET * sizeof(instr) / 4);
-		for (int i = 0; i < DATA_OFFSET / 4; i++) {
-			imem[i].op      = UNIMPL;
-			imem[i].a1.type = OPTYPE_NONE;
-			imem[i].a2.type = OPTYPE_NONE;
-			imem[i].a3.type = OPTYPE_NONE;
-		}
-		for (int i = 0; i < 32; i++) { this->rf[i] = 0; }
-	}
-	~CPU() { free(imem); }
+	CPU(std::string _name);
+	virtual ~CPU() { free(this->imem); }
 
-	inline instr*    getIMemPtr() { return this->imem; }
-	inline uint32_t& getPCRef() { return this->pc; }
-	inline uint32_t (&getRFRef())[32] { return this->rf; }
+	void processNxtInstr();
+	void processInstr(const instr& _i, uint32_t _mem_data = 0);
+	void memRead(instr_type _op, uint32_t _addr);
+	void memWrite(instr_type _op, uint32_t _addr, uint32_t _data);
+	void memReadRespHandler(MemReadRespPacket* _pkt);
+	void memWriteRespHandler();
+
+	inline instr* getIMemPtr() const { return this->imem; }
+	void          printRegfile() const;
+
+protected:
+	instr             fetchInstr(uint32_t _pc) const;
+	std::string       instrToString(instr_type _op) const;
 	inline void       incrementInstCount() { this->inst_cnt++; }
-	inline const int& getInstCount() { return this->inst_cnt; }
-
-	void        printRegfile();
-	instr       fetchInstr(uint32_t _pc);
-	std::string instrToString(instr_type _op);
-	void        processNxtInstr();
-	void        processInstr(const instr& _i, uint32_t _mem_data = 0);
-	void        memRead(instr_type _op, uint32_t _addr);
-	void        memWrite(instr_type _op, uint32_t _addr, uint32_t _data);
-	void        memReadRespHandler(MemReadRespPacket* _pkt);
-	void        memWriteRespHandler();
+	inline const int& getInstCount() const { return this->inst_cnt; }
 
 private:
 	instr*   imem;

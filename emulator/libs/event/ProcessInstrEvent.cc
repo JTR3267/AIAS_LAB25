@@ -16,7 +16,15 @@
 
 #include "event/ProcessInstrEvent.hh"
 
-void ProcessInstrEvent::process() {
-	auto cpu = (CPU*)(this->sim);
-	cpu->processInstr(this->inst);
+#include "CPU.hh"
+
+ProcessInstrEvent::ProcessInstrEvent(int _id, CPU* _cpu, instr& _instr)
+    : acalsim::SimEvent("ProcessInstrEvent" + std::to_string(_id)), cpu(_cpu), inst(_instr) {}
+
+void ProcessInstrEvent::renew(int _id, CPU* _cpu, instr _instr) {
+	this->SimEvent::renew();
+	this->cpu  = _cpu;
+	this->inst = _instr;
 }
+
+void ProcessInstrEvent::process() { this->cpu->processInstr(this->inst); }

@@ -18,9 +18,21 @@
 
 #include "DataMemory.hh"
 
+void MemReadRespPacket::renew(uint32_t _data) {
+	this->acalsim::SimPacket::renew();
+	this->data = _data;
+}
+
+void MemReadReqPacket::renew(std::function<void(MemReadRespPacket*)> _callback, instr_type _op, uint32_t _addr) {
+	this->acalsim::SimPacket::renew();
+	this->callback = _callback;
+	this->op       = _op;
+	this->addr     = _addr;
+}
+
 void MemReadReqPacket::visit(acalsim::Tick _when, acalsim::SimModule& _module) {
-	if (dynamic_cast<DataMemory*>((acalsim::SimModule*)(&_module))) {
-		dynamic_cast<DataMemory*>((acalsim::SimModule*)(&_module))->memReadReqHandler(_when, this);
+	if (auto dm = dynamic_cast<DataMemory*>(&_module)) {
+		dm->memReadReqHandler(_when, this);
 	} else {
 		CLASS_ERROR << "Invalid module type!";
 	}
@@ -30,9 +42,17 @@ void MemReadReqPacket::visit(acalsim::Tick _when, acalsim::SimBase& _simulator) 
 	CLASS_ERROR << "void MemReadReqPacket::visit (SimBase& simulator) is not implemented yet!";
 }
 
+void MemWriteReqPacket::renew(std::function<void(void)> _callback, instr_type _op, uint32_t _addr, uint32_t _data) {
+	this->acalsim::SimPacket::renew();
+	this->callback = _callback;
+	this->op       = _op;
+	this->addr     = _addr;
+	this->data     = _data;
+}
+
 void MemWriteReqPacket::visit(acalsim::Tick _when, acalsim::SimModule& _module) {
-	if (dynamic_cast<DataMemory*>((acalsim::SimModule*)(&_module))) {
-		dynamic_cast<DataMemory*>((acalsim::SimModule*)(&_module))->memWriteReqHandler(_when, this);
+	if (auto dm = dynamic_cast<DataMemory*>(&_module)) {
+		dm->memWriteReqHandler(_when, this);
 	} else {
 		CLASS_ERROR << "Invalid module type!";
 	}

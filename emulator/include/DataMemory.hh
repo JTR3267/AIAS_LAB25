@@ -24,20 +24,11 @@
 #include "DataStruct.hh"
 #include "MemPacket.hh"
 
-/**
- * @class A simple memory model
- */
 class DataMemory : public acalsim::SimModule, public BaseMemory {
 public:
-	/**
-	 * @brief Construct a new Memory object
-	 *
-	 * @param _name The name of memory.
-	 * @param _size The size of memory.
-	 */
 	DataMemory(std::string _name, size_t _size) : acalsim::SimModule(_name), BaseMemory(_size) {}
 
-	~DataMemory() {}
+	virtual ~DataMemory() {}
 
 	void initMem(char* _data, size_t _size) { this->writeData(_data, (uint32_t)0x0, _size); }
 
@@ -45,4 +36,5 @@ public:
 
 	void memWriteReqHandler(acalsim::Tick _when, MemWriteReqPacket* _memReqPkt);
 };
+
 #endif
