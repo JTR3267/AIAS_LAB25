@@ -44,7 +44,7 @@ void CPU::processNxtInstr() {
 		case LBU:
 		case LH:
 		case LHU:
-		case LW: this->memRead(i.a1.reg, i.op, this->rf[i.a2.reg] + i.a3.imm); break;
+		case LW: this->memRead(i.op, this->rf[i.a2.reg] + i.a3.imm); break;
 
 		case SB:
 		case SH:
@@ -58,14 +58,14 @@ void CPU::processNxtInstr() {
 	}
 }
 
-void CPU::memRead(int _rd, instr_type _op, uint32_t _addr) {
+void CPU::memRead(instr_type _op, uint32_t _addr) {
 	auto rc       = acalsim::top->getRecycleContainer();
-	auto callback = [this, _rd](MemReadRespPacket* _pkt) { this->memReadRespHandler(_rd, _pkt); };
+	auto callback = [this](MemReadRespPacket* _pkt) { this->memReadRespHandler(_pkt); };
 
 	MemReadReqPacket* pkt = rc->acquire<MemReadReqPacket>(&MemReadReqPacket::renew, callback, _op, _addr);
 
-	MemReadReqEvent* event = rc->acquire<MemReadReqEvent>(
-	    &MemReadReqEvent::renew, dynamic_cast<DataMemory*>(this->getDownStream("DSDmem")), pkt);
+	MemReqEvent* event =
+	    rc->acquire<MemReqEvent>(&MemReqEvent::renew, dynamic_cast<DataMemory*>(this->getDownStream("DSDmem")), pkt);
 	int latency = acalsim::top->getParameter<acalsim::Tick>("Emulator", "memory_read_latency");
 	this->scheduleEvent(event, acalsim::top->getGlobalTick() + latency);
 }
@@ -74,9 +74,9 @@ void CPU::memWrite(instr_type _op, uint32_t _addr, uint32_t _data) {
 	auto rc       = acalsim::top->getRecycleContainer();
 	auto callback = [this]() { this->memWriteRespHandler(); };
 
-	MemWriteReqPacket* pkt   = rc->acquire<MemWriteReqPacket>(&MemWriteReqPacket::renew, callback, _op, _addr, _data);
-	MemWriteReqEvent*  event = rc->acquire<MemWriteReqEvent>(
-        &MemWriteReqEvent::renew, dynamic_cast<DataMemory*>(this->getDownStream("DSDmem")), pkt);
+	MemWriteReqPacket* pkt = rc->acquire<MemWriteReqPacket>(&MemWriteReqPacket::renew, callback, _op, _addr, _data);
+	MemReqEvent*       event =
+	    rc->acquire<MemReqEvent>(&MemReqEvent::renew, dynamic_cast<DataMemory*>(this->getDownStream("DSDmem")), pkt);
 	int latency = acalsim::top->getParameter<acalsim::Tick>("Emulator", "memory_write_latency");
 	this->scheduleEvent(event, acalsim::top->getGlobalTick() + latency);
 }
@@ -150,17 +150,12 @@ instr CPU::fetchInstr(uint32_t _pc) {
 	return i;
 }
 
-void CPU::processInstr(uint32_t _rd = -1, uint32_t _value = 0) {
-	if (_rd != -1) { this->rf[_rd] = _value; }
-	this->pc += 4;
-}
-
-void CPU::processInstr(const instr& _i) {
+void CPU::processInstr(const instr& _i, uint32_t _mem_data) {
 	auto rf_ref = this->rf;
 	this->incrementInstCount();
 	int pc_next = this->pc + 4;
 
-	enum NxtState { PROCESS, MEMREQ, END };
+	enum NxtState { PROCESS, END };
 
 	NxtState nxt_state = PROCESS;
 
@@ -220,6 +215,16 @@ void CPU::processInstr(const instr& _i) {
 		case AUIPC: rf_ref[_i.a1.reg] = this->pc + (_i.a2.imm << 12); break;
 		case LUI: rf_ref[_i.a1.reg] = (_i.a2.imm << 12); break;
 
+		case LB:
+		case LBU:
+		case LH:
+		case LHU:
+		case LW: rf_ref[_i.a1.reg] = _mem_data; break;
+
+		case SB:
+		case SH:
+		case SW: break;
+
 		case HCF: nxt_state = END; break;
 		case UNIMPL:
 		default:
@@ -241,19 +246,20 @@ void CPU::processInstr(const instr& _i) {
 	}
 }
 
-void CPU::memReadRespHandler(int _rd, MemReadRespPacket* _pkt) {
+void CPU::memReadRespHandler(MemReadRespPacket* _pkt) {
 	CLASS_INFO << "Instruction LOAD"
 	           << " is completed at Tick = " << acalsim::top->getGlobalTick() << " | PC = " << this->pc;
 	uint32_t data = _pkt->getData();
 
-	this->processInstr(_rd, data);
-	this->processNxtInstr();
+	instr i = this->fetchInstr(this->pc);
+	this->processInstr(i, data);
 
 	acalsim::top->getRecycleContainer()->recycle(_pkt);
 }
 void CPU::memWriteRespHandler() {
 	CLASS_INFO << "Instruction STORE"
 	           << " is completed at Tick = " << acalsim::top->getGlobalTick() << " | PC = " << this->pc;
-	this->processInstr();
-	this->processNxtInstr();
+
+	instr i = this->fetchInstr(this->pc);
+	this->processInstr(i);
 }

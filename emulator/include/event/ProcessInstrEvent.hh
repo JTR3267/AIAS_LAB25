@@ -22,12 +22,12 @@
 
 class ProcessInstrEvent : public acalsim::SimEvent {
 public:
+	ProcessInstrEvent() {}
 	ProcessInstrEvent(int _id, acalsim::SimModule* _sim, instr& _instr)
 	    : acalsim::SimEvent("ProcessInstrEvent" + std::to_string(_id)), sim(_sim), inst(_instr) {
 		this->clearFlags(Managed);
 	}
 	~ProcessInstrEvent() {}
-	ProcessInstrEvent() {}
 
 	void renew(int _id, acalsim::SimModule* _sim, instr _instr) {
 		this->SimEvent::renew();

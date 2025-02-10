@@ -52,11 +52,10 @@ public:
 	instr       fetchInstr(uint32_t _pc);
 	std::string instrToString(instr_type _op);
 	void        processNxtInstr();
-	void        processInstr(const instr& _i);
-	void        processInstr(uint32_t _rd, uint32_t _value);
-	void        memRead(int _rd, instr_type _op, uint32_t _addr);
+	void        processInstr(const instr& _i, uint32_t _mem_data = 0);
+	void        memRead(instr_type _op, uint32_t _addr);
 	void        memWrite(instr_type _op, uint32_t _addr, uint32_t _data);
-	void        memReadRespHandler(int _rd, MemReadRespPacket* _pkt);
+	void        memReadRespHandler(MemReadRespPacket* _pkt);
 	void        memWriteRespHandler();
 
 private:

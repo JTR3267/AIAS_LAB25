@@ -16,6 +16,4 @@
 
 #include "event/MemReqEvent.hh"
 
-void MemReadReqEvent::process() { callee->accept(acalsim::top->getGlobalTick(), (acalsim::SimPacket&)*memReqPkt); }
-
-void MemWriteReqEvent::process() { callee->accept(acalsim::top->getGlobalTick(), (acalsim::SimPacket&)*memReqPkt); }
+void MemReqEvent::process() { callee->accept(acalsim::top->getGlobalTick(), *memReqPkt); }

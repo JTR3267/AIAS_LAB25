@@ -21,16 +21,16 @@
 #include "DataMemory.hh"
 #include "MemPacket.hh"
 
-class MemReadReqEvent : public acalsim::SimEvent {
+class MemReqEvent : public acalsim::SimEvent {
 public:
-	MemReadReqEvent(DataMemory* _callee, MemReadReqPacket* _memReqPkt)
-	    : acalsim::SimEvent("MemReadReqEvent"), callee(_callee), memReqPkt(_memReqPkt) {
+	MemReqEvent() {}
+	MemReqEvent(DataMemory* _callee, acalsim::SimPacket* _memReqPkt)
+	    : acalsim::SimEvent("MemReqEvent"), callee(_callee), memReqPkt(_memReqPkt) {
 		this->clearFlags(this->Managed);
 	}
-	~MemReadReqEvent() {}
-	MemReadReqEvent() {}
+	~MemReqEvent() {}
 
-	void renew(DataMemory* _callee, MemReadReqPacket* _memReqPkt) {
+	void renew(DataMemory* _callee, acalsim::SimPacket* _memReqPkt) {
 		this->SimEvent::renew();
 		this->callee    = _callee;
 		this->memReqPkt = _memReqPkt;
@@ -38,29 +38,8 @@ public:
 	void process() override;
 
 private:
-	DataMemory*       callee;
-	MemReadReqPacket* memReqPkt;
-};
-
-class MemWriteReqEvent : public acalsim::SimEvent {
-public:
-	MemWriteReqEvent(DataMemory* _callee, MemWriteReqPacket* _memReqPkt)
-	    : acalsim::SimEvent("MemWriteReqEvent"), callee(_callee), memReqPkt(_memReqPkt) {
-		this->clearFlags(this->Managed);
-	}
-	~MemWriteReqEvent() {}
-	MemWriteReqEvent() {}
-
-	void renew(DataMemory* _callee, MemWriteReqPacket* _memReqPkt) {
-		this->SimEvent::renew();
-		this->callee    = _callee;
-		this->memReqPkt = _memReqPkt;
-	}
-	void process() override;
-
-private:
-	DataMemory*        callee;
-	MemWriteReqPacket* memReqPkt;
+	DataMemory*         callee;
+	acalsim::SimPacket* memReqPkt;
 };
 
 #endif
