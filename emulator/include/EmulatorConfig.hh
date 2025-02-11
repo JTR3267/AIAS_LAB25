@@ -31,7 +31,6 @@ public:
 		this->addParameter<int>("data_offset", 8192, acalsim::ParamType::INT);
 		this->addParameter<int>("text_offset", 0, acalsim::ParamType::INT);
 		this->addParameter<int>("max_label_count", 128, acalsim::ParamType::INT);
-		this->addParameter<int>("max_label_len", 32, acalsim::ParamType::INT);
 		this->addParameter<int>("max_src_len", 1048576, acalsim::ParamType::INT);
 		this->addParameter<std::string>("asm_file_path", "", acalsim::ParamType::STRING);
 		this->addParameter<acalsim::Tick>("memory_read_latency", 1, acalsim::ParamType::TICK);
