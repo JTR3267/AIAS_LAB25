@@ -1,15 +1,20 @@
+# ACAL Curriculum Lab 25 - Event-Driven Simulation and Simulator Design
 
-[Lab25 Documentation Link](https://codimd.playlab.tw/PfPUSKZ8T3yN8oRVatt6bw)
+[Documentation Link](https://course.playlab.tw/md/XtO984FhRluy1AOBNfW3gw)
 
 ## Quick Start
-```
-git submodule update --init --recursive
-BUILD_DIR="build/debug" &&     cmake -B "${BUILD_DIR}" -DCMAKE_BUILD_TYPE=Debug &&     cmake --build "${BUILD_DIR}" -j $(nproc) --target demo
+
+```shell
+$ git submodule update --init --recursive
+$ BUILD_DIR="build/debug" && \
+    cmake -B "${BUILD_DIR}" -DCMAKE_BUILD_TYPE=Debug && \
+    cmake --build "${BUILD_DIR}" -j $(nproc) --target <TARGET>
 ```
 
-## File Struct
+## File Structure
+
 ```
-/path/to/lab25/
+lab25/
 ├── CMakeLists.txt          # Top-level CMake file for the project
 ├── demo/                   # Source code of Lab 25-2 & Lab 25-3
 │   ├── CMakeLists.txt      # CMake settings for demo/ folder
@@ -18,6 +23,7 @@ BUILD_DIR="build/debug" &&     cmake -B "${BUILD_DIR}" -DCMAKE_BUILD_TYPE=Debug 
 │   ├── Memory.hh
 │   ├── TrafficGenerator.cc
 │   └── TrafficGenerator.hh
+├── emulator/               # Source code of Lab 25-4
 └── third-party/            # Third-party libraries
     ├── acalsim/            # ACALSim Framework Library (as a Git submodule)
     └── CMakeLists.txt      # CMake settings for third-party/ folder
