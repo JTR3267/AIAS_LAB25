@@ -27,7 +27,7 @@ using json = nlohmann::json;
 class EmulatorConfig : public acalsim::SimConfig {
 public:
 	EmulatorConfig(const std::string& _name) : acalsim::SimConfig(_name) {
-		this->addParameter<int>("memory_size", 256, acalsim::ParamType::INT);
+		this->addParameter<int>("memory_size", 65536, acalsim::ParamType::INT);
 		this->addParameter<int>("data_offset", 8192, acalsim::ParamType::INT);
 		this->addParameter<int>("text_offset", 0, acalsim::ParamType::INT);
 		this->addParameter<int>("max_label_count", 128, acalsim::ParamType::INT);
