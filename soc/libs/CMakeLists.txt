@@ -26,16 +26,17 @@ get_filename_component(
 # ##########################################################################
 # Setup the libaray name
 ## You can modify the `template` below to any library name you prefer.
-set(APP_LIB emulator)
+set(APP_LIB_NAME soc)
 
 set(LIBS_SRCS
     CPU.cc
-    event/ProcessInstrEvent.cc
+    event/ExecOneInstrEvent.cc
     event/MemReqEvent.cc
     MemPacket.cc
     BaseMemory.cc
     DataMemory.cc
     Emulator.cc
+    SOC.cc
 )
 # ##########################################################################
 # # Build rules
@@ -48,9 +49,9 @@ endfunction(configure_target)
 
 # Shared Libs for gdb
 if(BUILD_SHARED_LIBS)
-    add_library(${APP_LIB}_lib SHARED ${LIBS_SRCS})
+    add_library(${APP_LIB_NAME}_lib SHARED ${LIBS_SRCS})
 else()
-    add_library(${APP_LIB}_lib STATIC ${LIBS_SRCS})
+    add_library(${APP_LIB_NAME}_lib STATIC ${LIBS_SRCS})
 endif()
 
-configure_target(${APP_LIB}_lib)
+configure_target(${APP_LIB_NAME}_lib)

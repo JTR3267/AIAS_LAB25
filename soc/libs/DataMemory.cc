@@ -17,8 +17,10 @@
 #include "DataMemory.hh"
 
 void DataMemory::memReadReqHandler(acalsim::Tick _when, MemReadReqPacket* _memReqPkt) {
+	instr      i        = _memReqPkt->getInstr();
 	instr_type op       = _memReqPkt->getOP();
 	uint32_t   addr     = _memReqPkt->getAddr();
+	operand    a1       = _memReqPkt->getA1();
 	auto       callback = _memReqPkt->getCallback();
 
 	size_t   bytes = 0;
@@ -43,12 +45,13 @@ void DataMemory::memReadReqHandler(acalsim::Tick _when, MemReadReqPacket* _memRe
 	}
 
 	auto               rc         = acalsim::top->getRecycleContainer();
-	MemReadRespPacket* memRespPkt = rc->acquire<MemReadRespPacket>(&MemReadRespPacket::renew, ret);
+	MemReadRespPacket* memRespPkt = rc->acquire<MemReadRespPacket>(&MemReadRespPacket::renew, i, op, ret, a1);
 	rc->recycle(_memReqPkt);
 	callback(memRespPkt);
 }
 
 void DataMemory::memWriteReqHandler(acalsim::Tick _when, MemWriteReqPacket* _memReqPkt) {
+	instr      i        = _memReqPkt->getInstr();
 	instr_type op       = _memReqPkt->getOP();
 	uint32_t   addr     = _memReqPkt->getAddr();
 	uint32_t   data     = _memReqPkt->getData();
@@ -79,7 +82,9 @@ void DataMemory::memWriteReqHandler(acalsim::Tick _when, MemWriteReqPacket* _mem
 			break;
 		}
 	}
-
-	acalsim::top->getRecycleContainer()->recycle(_memReqPkt);
-	callback();
+	
+	auto               rc         = acalsim::top->getRecycleContainer();
+	MemWriteRespPacket* memRespPkt = rc->acquire<MemWriteRespPacket>(&MemWriteRespPacket::renew, i );
+	rc->recycle(_memReqPkt);
+	callback(memRespPkt);
 }

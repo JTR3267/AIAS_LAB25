@@ -30,5 +30,5 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # Subdirectories
 add_subdirectory(demo)
-add_subdirectory(emulator)
+add_subdirectory(soc)
 add_subdirectory(third-party)

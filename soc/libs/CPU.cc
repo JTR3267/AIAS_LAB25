@@ -14,58 +14,51 @@
  * limitations under the License.
  */
 
-#include "CPU.hh"
+
 
 #include <iomanip>
 #include <sstream>
 
 #include "DataMemory.hh"
 #include "event/MemReqEvent.hh"
-#include "event/ProcessInstrEvent.hh"
+#include "event/ExecOneInstrEvent.hh"
+#include "CPU.hh"
 
-CPU::CPU(std::string _name) : acalsim::SimModule(_name), pc(0), inst_cnt(0) {
-	auto data_offset = acalsim::top->getParameter<int>("Emulator", "data_offset");
-	this->imem       = (instr*)malloc(data_offset * sizeof(instr) / 4);
-	for (int i = 0; i < data_offset / 4; i++) {
-		this->imem[i].op      = UNIMPL;
-		this->imem[i].a1.type = OPTYPE_NONE;
-		this->imem[i].a2.type = OPTYPE_NONE;
-		this->imem[i].a3.type = OPTYPE_NONE;
-	}
-	for (int i = 0; i < 32; i++) { this->rf[i] = 0; }
+
+CPU::CPU(std::string _name, Emulator*& _emulator, DataMemory *_dmem) : 
+    acalsim::SimModule(_name), 
+    pc(0), 
+    inst_cnt(0), 
+    isaEmulator(_emulator), 
+    dmem(_dmem) // Get DataMemory pointer
+{
+    auto data_offset = acalsim::top->getParameter<int>("Emulator", "data_offset");
+    this->imem       = (instr*)malloc(data_offset * sizeof(instr) / 4);
+    for (int i = 0; i < data_offset / 4; i++) {
+        this->imem[i].op      = UNIMPL;
+        this->imem[i].a1.type = OPTYPE_NONE;
+        this->imem[i].a2.type = OPTYPE_NONE;
+        this->imem[i].a3.type = OPTYPE_NONE;
+    }
+    for (int i = 0; i < 32; i++) { this->rf[i] = 0; }
 }
 
-void CPU::processNxtInstr() {
+
+void CPU::execOneInstr(){
+	// This lab models a single-CPU cycle as shown in Lab7
+	// Fetch instruction
 	instr i = this->fetchInstr(this->pc);
-
-	switch (i.op) {
-		case LB:
-		case LBU:
-		case LH:
-		case LHU:
-		case LW: this->memRead(i.op, this->rf[i.a2.reg] + i.a3.imm); break;
-
-		case SB:
-		case SH:
-		case SW: this->memWrite(i.op, this->rf[i.a2.reg] + i.a3.imm, this->rf[i.a1.reg]); break;
-
-		default: {
-			auto               rc = acalsim::top->getRecycleContainer();
-			ProcessInstrEvent* event =
-			    rc->acquire<ProcessInstrEvent>(&ProcessInstrEvent::renew, this->getInstCount(), this, i);
-			this->scheduleEvent(event, acalsim::top->getGlobalTick() + 1);
-		} break;
-	}
+	// Execute the instruction in the same cycle
+	processInstr(i);
 }
 
-void CPU::processInstr(const instr& _i, uint32_t _mem_data) {
+
+void CPU::processInstr(const instr& _i) {
+	bool done=false;
 	auto& rf_ref = this->rf;
 	this->incrementInstCount();
 	int pc_next = this->pc + 4;
 
-	enum NxtState { PROCESS, END };
-
-	NxtState nxt_state = PROCESS;
 
 	switch (_i.op) {
 		case ADD: rf_ref[_i.a1.reg] = rf_ref[_i.a2.reg] + rf_ref[_i.a3.reg]; break;
@@ -123,68 +116,100 @@ void CPU::processInstr(const instr& _i, uint32_t _mem_data) {
 		case LBU:
 		case LH:
 		case LHU:
-		case LW: rf_ref[_i.a1.reg] = _mem_data; break;
-
+		case LW: 
+			done = this->memRead(_i, _i.op, this->rf[_i.a2.reg] + _i.a3.imm, _i.a1); 
+			if (!done) return;
+			break;
 		case SB:
 		case SH:
-		case SW: break;
+		case SW: 
+			done = !this->memWrite(_i, _i.op, this->rf[_i.a2.reg] + _i.a3.imm, this->rf[_i.a1.reg]); 
+			if (!done) return;
+			break;
 
-		case HCF: nxt_state = END; break;
+		case HCF: break;
 		case UNIMPL:
 		default:
 			CLASS_INFO << "Reached an unimplemented instruction!";
 			if (_i.psrc) printf("Instruction: %s\n", _i.psrc);
-			nxt_state = END;
 			break;
 	}
 
-	if (nxt_state == PROCESS) {
-		CLASS_INFO << "Instruction " << this->instrToString(_i.op)
-		           << " is completed at Tick = " << acalsim::top->getGlobalTick() << " | PC = " << this->pc;
-		auto memory_size = acalsim::top->getParameter<int>("Emulator", "memory_size");
-		this->pc         = pc_next % memory_size;
-		this->processNxtInstr();
-
-	} else if (nxt_state == END) {
-		CLASS_INFO << "Instruction " << this->instrToString(_i.op)
-		           << " is completed at Tick = " << acalsim::top->getGlobalTick() << " | PC = " << this->pc;
-	}
+	commitInstr(_i);
+	this->pc = pc_next;
+	
 }
 
-void CPU::memRead(instr_type _op, uint32_t _addr) {
+void CPU::commitInstr(const instr& _i){
+	CLASS_INFO << "Instruction " << this->instrToString(_i.op)	
+	           << " is completed at Tick = " << acalsim::top->getGlobalTick() << " | PC = " << this->pc;
+	
+	if (_i.op == HCF) return;
+
+	// schedule the next trigger event
+	auto               rc = acalsim::top->getRecycleContainer();
+	ExecOneInstrEvent* event =
+		rc->acquire<ExecOneInstrEvent>(&ExecOneInstrEvent::renew,  this->getInstCount()/*id*/, this);
+	this->scheduleEvent(event, acalsim::top->getGlobalTick() + 1);
+}
+
+bool  CPU::memRead(const instr& _i, instr_type _op, uint32_t _addr, operand _a1) {
+	// If latency is larger than 1, e.g. cache miss or multi-cycle SRAM reads
+	
 	auto rc       = acalsim::top->getRecycleContainer();
-	int  latency  = acalsim::top->getParameter<acalsim::Tick>("Emulator", "memory_read_latency");
+	int  latency  = acalsim::top->getParameter<acalsim::Tick>("SOC", "memory_read_latency");
 	auto callback = [this](MemReadRespPacket* _pkt) { this->memReadRespHandler(_pkt); };
 
-	MemReadReqPacket* pkt = rc->acquire<MemReadReqPacket>(&MemReadReqPacket::renew, callback, _op, _addr);
+	MemReadReqPacket* pkt = rc->acquire<MemReadReqPacket>(&MemReadReqPacket::renew, callback, _i, _op, _addr, _a1);
 
-	MemReqEvent* event =
-	    rc->acquire<MemReqEvent>(&MemReqEvent::renew, dynamic_cast<DataMemory*>(this->getDownStream("DSDmem")), pkt);
-	this->scheduleEvent(event, acalsim::top->getGlobalTick() + latency);
+	if (latency == 1)
+	{		
+		this->dmem->accept(acalsim::top->getGlobalTick(),*((acalsim::SimPacket *)pkt));
+	} else{	
+		MemReqEvent* event =
+		    rc->acquire<MemReqEvent>(&MemReqEvent::renew, dynamic_cast<DataMemory*>(this->getDownStream("DSDmem")), pkt);
+		this->scheduleEvent(event, acalsim::top->getGlobalTick() + latency-1); 
+	
+		return false;
+	}	
+	return true;		
 }
 
-void CPU::memWrite(instr_type _op, uint32_t _addr, uint32_t _data) {
+bool CPU::memWrite(const instr& _i, instr_type _op, uint32_t _addr, uint32_t _data) {
 	auto rc       = acalsim::top->getRecycleContainer();
-	int  latency  = acalsim::top->getParameter<acalsim::Tick>("Emulator", "memory_write_latency");
-	auto callback = [this]() { this->memWriteRespHandler(); };
+	int  latency  = acalsim::top->getParameter<acalsim::Tick>("SOC", "memory_write_latency");
+	auto callback = [this](MemWriteRespPacket* _pkt) { this->memWriteRespHandler(_pkt); };
 
-	MemWriteReqPacket* pkt = rc->acquire<MemWriteReqPacket>(&MemWriteReqPacket::renew, callback, _op, _addr, _data);
-	MemReqEvent*       event =
-	    rc->acquire<MemReqEvent>(&MemReqEvent::renew, dynamic_cast<DataMemory*>(this->getDownStream("DSDmem")), pkt);
-	this->scheduleEvent(event, acalsim::top->getGlobalTick() + latency);
+	MemWriteReqPacket* pkt = rc->acquire<MemWriteReqPacket>(&MemWriteReqPacket::renew, callback, _i, _op, _addr, _data);
+
+	if (latency == 1)
+	{
+		this->dmem->accept(acalsim::top->getGlobalTick(), *((acalsim::SimPacket *)pkt));		
+	} else{
+		MemReqEvent*       event =
+	    	rc->acquire<MemReqEvent>(&MemReqEvent::renew, dynamic_cast<DataMemory*>(this->getDownStream("DSDmem")), pkt);
+		this->scheduleEvent(event, acalsim::top->getGlobalTick() + latency-1);
+		//stall CPU pipeline 	
+		return false;
+	}
+	return true;
 }
 
 void CPU::memReadRespHandler(MemReadRespPacket* _pkt) {
 	uint32_t data = _pkt->getData();
-	instr    i    = this->fetchInstr(this->pc);
-	this->processInstr(i, data);
-
+	instr i = _pkt->getInstr();
+	operand a1 = _pkt->getA1();
+	this->rf[a1.reg] = data;
 	acalsim::top->getRecycleContainer()->recycle(_pkt);
+	commitInstr(i);
+	this->pc += 4;
 }
 
-void CPU::memWriteRespHandler() {
-	instr i = this->fetchInstr(this->pc);
-	this->processInstr(i);
+void CPU::memWriteRespHandler(MemWriteRespPacket* _pkt) {
+	instr i = _pkt->getInstr();
+	acalsim::top->getRecycleContainer()->recycle(_pkt);
+	commitInstr(i);
+	this->pc += 4;
 }
 
 void CPU::printRegfile() const {

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef EMULATOR_INCLUDE_EMULATOR_HH_
-#define EMULATOR_INCLUDE_EMULATOR_HH_
+#ifndef SOC_INCLUDE_EMULATOR_HH_
+#define SOC_INCLUDE_EMULATOR_HH_
 
 #include <ctype.h>
 #include <errno.h>
@@ -27,20 +27,15 @@
 #include <memory>
 
 #include "ACALSim.hh"
-#include "CPU.hh"
 #include "DataMemory.hh"
 #include "DataStruct.hh"
 
-class Emulator : public acalsim::STSimBase {
+class Emulator {
 public:
-	Emulator(std::string _name = "Emulator");
+	Emulator(std::string _name = "Emulator", DataMemory *_dmem= nullptr);
 	virtual ~Emulator() {}
 
-	void registerModules() override;
-
-	void simInit() override;
-
-	void cleanup() override;
+	void init();
 
 	// Lab7 Emulator Function Definition
 	uint32_t label_addr(char* _label, label_loc* _labels, int _label_count, int _orig_line);
@@ -58,18 +53,20 @@ public:
 	void     print_syntax_error(int _line, const char* _msg);
 	bool     streq(char* _s, const char* _q);
 	uint32_t signextend(uint32_t _in, int _bits);
-
+	void parse(const std::string& _file_path, uint8_t* _mem, instr* _imem);
 	void parse(const std::string& _file_path, uint8_t* _mem, instr* _imem, int& _memoff, label_loc* _labels,
 	           int& _label_count, source* _src);
+	void normalize_labels(instr* _imem);
 	void normalize_labels(instr* _imem, label_loc* _labels, int _label_count, source* _src);
 
 private:
-	CPU*        cpu;
-	DataMemory* dmem;
+
 	label_loc*  labels;
 	int         label_count;
 	int         memoff;
 	source      src;
+	DataMemory *dmem;
 };
 
-#endif  // SRC_TESTEMULATOR_INCLUDE_EMULATOR_HH_
+
+#endif  // SOC_INCLUDE_EMULATOR_HH_

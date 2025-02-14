@@ -15,18 +15,12 @@
  */
 
 #include "Emulator.hh"
+#include "SystemConfig.hh"
 
-#include "EmulatorConfig.hh"
+Emulator::Emulator(std::string _name, DataMemory *_dmem) : label_count(0), memoff(0), dmem(_dmem){
+	INFO << "asm_file_path : " << acalsim::top->getParameter<std::string>("Emulator", "asm_file_path");
 
-Emulator::Emulator(std::string _name) : acalsim::STSimBase(_name), label_count(0), memoff(0) {
-	CLASS_INFO << "asm_file_path : " << acalsim::top->getParameter<std::string>("Emulator", "asm_file_path");
-
-	CLASS_INFO << "memory_size : " << acalsim::top->getParameter<int>("Emulator", "memory_size") << " Bytes";
-
-	CLASS_INFO << "memory_read_latency : "
-	           << acalsim::top->getParameter<acalsim::Tick>("Emulator", "memory_read_latency") << " Ticks";
-	CLASS_INFO << "memory_write_latency : "
-	           << acalsim::top->getParameter<acalsim::Tick>("Emulator", "memory_write_latency") << " Ticks";
+	INFO << "memory_size : " << acalsim::top->getParameter<int>("Emulator", "memory_size") << " Bytes";
 
 	auto max_label_count = acalsim::top->getParameter<int>("Emulator", "max_label_count");
 	auto max_src_len     = acalsim::top->getParameter<int>("Emulator", "max_src_len");
@@ -35,50 +29,9 @@ Emulator::Emulator(std::string _name) : acalsim::STSimBase(_name), label_count(0
 	this->src.src        = (char*)malloc(sizeof(char) * max_src_len);
 }
 
-void Emulator::registerModules() {
-	size_t mem_size = acalsim::top->getParameter<int>("Emulator", "memory_size");
+void Emulator::init(){
+	
 
-	// create modules
-	this->cpu  = new CPU("CPU Emulator");
-	this->dmem = new DataMemory("Data Memory", mem_size);
-
-	// register modules
-	this->addModule(this->cpu);
-	this->addModule(this->dmem);
-
-	// connect modules (connected_module, master port name, slave port name)
-	this->cpu->addDownStream(this->dmem, "DSDmem");
-	this->dmem->addUpStream(this->cpu, "USCPU");
-}
-
-void Emulator::simInit() {
-	CLASS_INFO << name + " Emulator::simInit()!";
-
-	// Initialize all child modules
-	for (auto& [_, module] : this->modules) { module->init(); }
-
-	// Parse assmebly file and initialize data memory and instruction memory
-	std::string asm_file_path = acalsim::top->getParameter<std::string>("Emulator", "asm_file_path");
-
-	this->parse(asm_file_path, ((uint8_t*)this->dmem->getMemPtr()), this->cpu->getIMemPtr(), this->memoff, this->labels,
-	            this->label_count, &(this->src));
-	this->normalize_labels(this->cpu->getIMemPtr(), this->labels, this->label_count, &(this->src));
-
-	CLASS_INFO << "Simulation starts";
-	this->cpu->processNxtInstr();
-}
-
-void Emulator::cleanup() {
-	this->cpu->printRegfile();
-	CLASS_INFO << "Emulator::cleanup() ";
-}
-
-uint32_t Emulator::label_addr(char* _label, label_loc* _labels, int _label_count, int _orig_line) {
-	for (int i = 0; i < _label_count; i++) {
-		if (streq(_labels[i].label, _label)) return _labels[i].loc;
-	}
-	print_syntax_error(_orig_line, "Undefined label");
-	return -1;
 }
 
 void Emulator::append_source(const char* _op, const char* _a1, const char* _a2, const char* _a3, source* _src,
@@ -553,13 +506,17 @@ uint32_t Emulator::signextend(uint32_t _in, int _bits) {
 	return _in;
 }
 
+void Emulator::parse(const std::string& _file_path, uint8_t* _mem, instr* _imem){
+	this->parse(_file_path, _mem, _imem, this->memoff, this->labels, this->label_count,  &(this->src));
+}
+
 void Emulator::parse(const std::string& _file_path, uint8_t* _mem, instr* _imem, int& _memoff, label_loc* _labels,
                      int& _label_count, source* _src) {
 	FILE* fin = fopen(_file_path.c_str(), "r");
 	if (!fin) { ERROR << _file_path << ": No such file"; }
 	int line = 0;
 
-	CLASS_INFO << "Parsing input file";
+	INFO << "Parsing input file";
 
 	// sectionType cur_section = SECTION_NONE;
 	char rbuf[1024];
@@ -607,6 +564,10 @@ void Emulator::parse(const std::string& _file_path, uint8_t* _mem, instr* _imem,
 			_memoff += count * 4;
 		}
 	}
+}
+
+void Emulator::normalize_labels(instr* _imem){
+	this->normalize_labels(_imem, this->labels, this->label_count, &(this->src));
 }
 
 void Emulator::normalize_labels(instr* _imem, label_loc* _labels, int _label_count, source* _src) {
@@ -683,3 +644,13 @@ void Emulator::normalize_labels(instr* _imem, label_loc* _labels, int _label_cou
 		}
 	}
 }
+
+
+uint32_t Emulator::label_addr(char* _label, label_loc* _labels, int _label_count, int _orig_line) {
+	for (int i = 0; i < _label_count; i++) {
+		if (streq(_labels[i].label, _label)) return _labels[i].loc;
+	}
+	print_syntax_error(_orig_line, "Undefined label");
+	return -1;
+}
+
