@@ -14,27 +14,25 @@
  * limitations under the License.
  */
 
-#ifndef EMULATOR_INCLUDE_DATAMEMORY_HH_
-#define EMULATOR_INCLUDE_DATAMEMORY_HH_
-
-#include <string>
+#ifndef SOC_INCLUDE_EVENT_EXECONEINSTREVENT_HH_
+#define SOC_INCLUDE_EVENT_EXCONEINSTREVENT_HH_
 
 #include "ACALSim.hh"
-#include "BaseMemory.hh"
 #include "DataStruct.hh"
-#include "MemPacket.hh"
 
-class DataMemory : public acalsim::SimModule, public BaseMemory {
+class CPU;
+
+class ExecOneInstrEvent : public acalsim::SimEvent {
 public:
-	DataMemory(std::string _name, size_t _size) : acalsim::SimModule(_name), BaseMemory(_size) {}
+	ExecOneInstrEvent() = default;
+	ExecOneInstrEvent(int _id, CPU* _cpu);
+	virtual ~ExecOneInstrEvent() = default;
 
-	virtual ~DataMemory() {}
+	void renew(int _id, CPU* _cpu);
+	void process() override;
 
-	void initMem(char* _data, size_t _size) { this->writeData(_data, (uint32_t)0x0, _size); }
-
-	void memReadReqHandler(acalsim::Tick _when, MemReadReqPacket* _memReqPkt);
-
-	void memWriteReqHandler(acalsim::Tick _when, MemWriteReqPacket* _memReqPkt);
+private:
+	CPU*  cpu;
 };
 
 #endif

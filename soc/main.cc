@@ -14,26 +14,13 @@
  * limitations under the License.
  */
 
-#ifndef EMULATOR_INCLUDE_EVENT_PROCESSINSTREVENT_HH_
-#define EMULATOR_INCLUDE_EVENT_PROCESSINSTREVENT_HH_
-
 #include "ACALSim.hh"
-#include "DataStruct.hh"
+#include "SOCTop.hh"
 
-class CPU;
-
-class ProcessInstrEvent : public acalsim::SimEvent {
-public:
-	ProcessInstrEvent() = default;
-	ProcessInstrEvent(int _id, CPU* _cpu, instr& _instr);
-	virtual ~ProcessInstrEvent() = default;
-
-	void renew(int _id, CPU* _cpu, instr _instr);
-	void process() override;
-
-private:
-	CPU*  cpu;
-	instr inst;
-};
-
-#endif
+int main(int argc, char** argv) {
+	acalsim::top = std::make_shared<SOCTop>("SOCTop", "soc/configs.json");
+	acalsim::top->init(argc, argv);
+	acalsim::top->run();
+	acalsim::top->finish();
+	return 0;
+}

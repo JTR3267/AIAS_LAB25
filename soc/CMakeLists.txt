@@ -21,10 +21,13 @@ get_filename_component(DIR_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
 set(EXE_NAME ${DIR_NAME})
 
 # Declare the executable
-add_executable(${EXE_NAME} emulator.cc)
+add_executable(${EXE_NAME} main.cc)
 
 # Add subdirectories
 add_subdirectory(libs)
 
 # Link libraries to the executable
-target_link_libraries(${EXE_NAME} PRIVATE emulator_lib)
+target_include_directories(${EXE_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include) 
+target_link_libraries(${EXE_NAME} PRIVATE soc_lib)
+target_link_libraries(${EXE_NAME} PUBLIC ACALSim::acalsim)
+

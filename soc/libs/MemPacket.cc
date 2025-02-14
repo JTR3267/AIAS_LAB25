@@ -18,16 +18,21 @@
 
 #include "DataMemory.hh"
 
-void MemReadRespPacket::renew(uint32_t _data) {
+void MemReadRespPacket::renew(const instr& _i, instr_type _op,uint32_t _data, operand _a1) {
 	this->acalsim::SimPacket::renew();
+	this->i    = _i;
+	this->op   = _op;
 	this->data = _data;
+	this->a1   = _a1;
 }
 
-void MemReadReqPacket::renew(std::function<void(MemReadRespPacket*)> _callback, instr_type _op, uint32_t _addr) {
+void MemReadReqPacket::renew(std::function<void(MemReadRespPacket*)> _callback,  const instr& _i,  instr_type _op, uint32_t _addr, operand _a1) {
 	this->acalsim::SimPacket::renew();
 	this->callback = _callback;
+	this->i        = _i;
 	this->op       = _op;
 	this->addr     = _addr;
+	this->a1       = _a1;
 }
 
 void MemReadReqPacket::visit(acalsim::Tick _when, acalsim::SimModule& _module) {
@@ -42,9 +47,15 @@ void MemReadReqPacket::visit(acalsim::Tick _when, acalsim::SimBase& _simulator) 
 	CLASS_ERROR << "void MemReadReqPacket::visit (SimBase& simulator) is not implemented yet!";
 }
 
-void MemWriteReqPacket::renew(std::function<void(void)> _callback, instr_type _op, uint32_t _addr, uint32_t _data) {
+void MemWriteRespPacket::renew(const instr& _i) {
+	this->acalsim::SimPacket::renew();
+	this->i = _i;
+}
+
+void MemWriteReqPacket::renew(std::function<void(MemWriteRespPacket *)> _callback, const instr& _i, instr_type _op, uint32_t _addr, uint32_t _data) {
 	this->acalsim::SimPacket::renew();
 	this->callback = _callback;
+	this->i        = _i;
 	this->op       = _op;
 	this->addr     = _addr;
 	this->data     = _data;
@@ -68,4 +79,12 @@ void MemReadRespPacket::visit(acalsim::Tick _when, acalsim::SimModule& _module) 
 
 void MemReadRespPacket::visit(acalsim::Tick _when, acalsim::SimBase& _simulator) {
 	CLASS_ERROR << "void MemReadRespPacket::visit (SimBase& simulator) is not implemented yet!";
+}
+
+void MemWriteRespPacket::visit(acalsim::Tick _when, acalsim::SimModule& _module) {
+	CLASS_ERROR << "void MemWriteRespPacket::visit (SimModule& module) is not implemented yet!";
+}
+
+void MemWriteRespPacket::visit(acalsim::Tick _when, acalsim::SimBase& _simulator) {
+	CLASS_ERROR << "void MemWriteRespPacket::visit (SimBase& simulator) is not implemented yet!";
 }

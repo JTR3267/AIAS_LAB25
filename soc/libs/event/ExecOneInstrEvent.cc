@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-#include "event/ProcessInstrEvent.hh"
+#include "event/ExecOneInstrEvent.hh"
 
 #include "CPU.hh"
 
-ProcessInstrEvent::ProcessInstrEvent(int _id, CPU* _cpu, instr& _instr)
-    : acalsim::SimEvent("ProcessInstrEvent" + std::to_string(_id)), cpu(_cpu), inst(_instr) {}
+ExecOneInstrEvent::ExecOneInstrEvent(int _id, CPU* _cpu)
+    : acalsim::SimEvent("ExecOneInstrEvent" + std::to_string(_id)), cpu(_cpu){}
 
-void ProcessInstrEvent::renew(int _id, CPU* _cpu, instr _instr) {
+void ExecOneInstrEvent::renew(int _id, CPU* _cpu) {
 	this->SimEvent::renew();
 	this->cpu  = _cpu;
-	this->inst = _instr;
 }
 
-void ProcessInstrEvent::process() { this->cpu->processInstr(this->inst); }
+void ExecOneInstrEvent::process() { this->cpu->execOneInstr(); }
