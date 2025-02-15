@@ -30,9 +30,9 @@
 #include "DataMemory.hh"
 #include "DataStruct.hh"
 
-class Emulator {
+class Emulator : virtual public acalsim::HashableType {
 public:
-	Emulator(std::string _name = "Emulator", DataMemory *_dmem= nullptr);
+	Emulator(std::string _name = "Emulator", DataMemory* _dmem = nullptr);
 	virtual ~Emulator() {}
 
 	void init();
@@ -53,20 +53,18 @@ public:
 	void     print_syntax_error(int _line, const char* _msg);
 	bool     streq(char* _s, const char* _q);
 	uint32_t signextend(uint32_t _in, int _bits);
-	void parse(const std::string& _file_path, uint8_t* _mem, instr* _imem);
-	void parse(const std::string& _file_path, uint8_t* _mem, instr* _imem, int& _memoff, label_loc* _labels,
-	           int& _label_count, source* _src);
-	void normalize_labels(instr* _imem);
-	void normalize_labels(instr* _imem, label_loc* _labels, int _label_count, source* _src);
+	void     parse(const std::string& _file_path, uint8_t* _mem, instr* _imem);
+	void     parse(const std::string& _file_path, uint8_t* _mem, instr* _imem, int& _memoff, label_loc* _labels,
+	               int& _label_count, source* _src);
+	void     normalize_labels(instr* _imem);
+	void     normalize_labels(instr* _imem, label_loc* _labels, int _label_count, source* _src);
 
 private:
-
 	label_loc*  labels;
 	int         label_count;
 	int         memoff;
 	source      src;
-	DataMemory *dmem;
+	DataMemory* dmem;
 };
-
 
 #endif  // SOC_INCLUDE_EMULATOR_HH_

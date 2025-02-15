@@ -15,38 +15,35 @@
  */
 
 #include "SOC.hh"
+
 #include "event/ExecOneInstrEvent.hh"
 
-
-SOC::SOC(std::string _name): acalsim::STSimBase(_name){
-    // Get read latency for the data memory model
-	CLASS_INFO << "memory_read_latency : "
-	           << acalsim::top->getParameter<acalsim::Tick>("SOC", "memory_read_latency") << " Ticks";
-    // Get write latency for the data memory model
-	CLASS_INFO << "memory_write_latency : "
-	           << acalsim::top->getParameter<acalsim::Tick>("SOC", "memory_write_latency") << " Ticks";
-
+SOC::SOC(std::string _name) : acalsim::STSimBase(_name) {
+	// Get read latency for the data memory model
+	CLASS_INFO << "memory_read_latency : " << acalsim::top->getParameter<acalsim::Tick>("SOC", "memory_read_latency")
+	           << " Ticks";
+	// Get write latency for the data memory model
+	CLASS_INFO << "memory_write_latency : " << acalsim::top->getParameter<acalsim::Tick>("SOC", "memory_write_latency")
+	           << " Ticks";
 }
 
 void SOC::registerModules() {
-
-    // Get the maximal memory footprint size in the Emulator Configuration
+	// Get the maximal memory footprint size in the Emulator Configuration
 	size_t mem_size = acalsim::top->getParameter<int>("Emulator", "memory_size");
 
 	/* -----------------
-     *   create modules
-     */
+	 *   create modules
+	 */
 
-   // Data Memory Timing Model
+	// Data Memory Timing Model
 	this->dmem = new DataMemory("Data Memory", mem_size);
 
-   // Instruction Set Architecture Emulator (Functional Model)
-    this->isaEmulator = new Emulator("RISCV RV32I Emulator", this->dmem);  
+	// Instruction Set Architecture Emulator (Functional Model)
+	this->isaEmulator = new Emulator("RISCV RV32I Emulator", this->dmem);
 
-    // CPU Timing Model
-	this->cpu  = new CPU("Single-Cycle CPU Model", this->isaEmulator, this->dmem);
+	// CPU Timing Model
+	this->cpu = new CPU("Single-Cycle CPU Model", this->isaEmulator, this->dmem);
 
- 
 	// register modules
 	this->addModule(this->cpu);
 	this->addModule(this->dmem);
@@ -54,15 +51,13 @@ void SOC::registerModules() {
 	// connect modules (connected_module, master port name, slave port name)
 	this->cpu->addDownStream(this->dmem, "DSDmem");
 	this->dmem->addUpStream(this->cpu, "USCPU");
-
- 
 }
 
 void SOC::simInit() {
 	CLASS_INFO << name + " SOC::simInit()!";
 
-    // Initialize the ISA Emulator
-    // Parse assmebly file and initialize data memory and instruction memory
+	// Initialize the ISA Emulator
+	// Parse assmebly file and initialize data memory and instruction memory
 	std::string asm_file_path = acalsim::top->getParameter<std::string>("Emulator", "asm_file_path");
 
 	this->isaEmulator->parse(asm_file_path, ((uint8_t*)this->dmem->getMemPtr()), this->cpu->getIMemPtr());
@@ -72,11 +67,9 @@ void SOC::simInit() {
 	for (auto& [_, module] : this->modules) { module->init(); }
 
 	// Inject trigger event
-    auto               rc = acalsim::top->getRecycleContainer();
-	ExecOneInstrEvent* event =
-		rc->acquire<ExecOneInstrEvent>(&ExecOneInstrEvent::renew, 1 /*id*/, this->cpu);
+	auto               rc    = acalsim::top->getRecycleContainer();
+	ExecOneInstrEvent* event = rc->acquire<ExecOneInstrEvent>(&ExecOneInstrEvent::renew, 1 /*id*/, this->cpu);
 	this->scheduleEvent(event, acalsim::top->getGlobalTick() + 1);
-
 }
 
 void SOC::cleanup() {

@@ -19,11 +19,11 @@
 #include "CPU.hh"
 
 ExecOneInstrEvent::ExecOneInstrEvent(int _id, CPU* _cpu)
-    : acalsim::SimEvent("ExecOneInstrEvent" + std::to_string(_id)), cpu(_cpu){}
+    : acalsim::SimEvent("ExecOneInstrEvent" + std::to_string(_id)), cpu(_cpu) {}
 
 void ExecOneInstrEvent::renew(int _id, CPU* _cpu) {
 	this->SimEvent::renew();
-	this->cpu  = _cpu;
+	this->cpu = _cpu;
 }
 
 void ExecOneInstrEvent::process() { this->cpu->execOneInstr(); }

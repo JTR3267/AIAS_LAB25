@@ -82,9 +82,9 @@ void DataMemory::memWriteReqHandler(acalsim::Tick _when, MemWriteReqPacket* _mem
 			break;
 		}
 	}
-	
-	auto               rc         = acalsim::top->getRecycleContainer();
-	MemWriteRespPacket* memRespPkt = rc->acquire<MemWriteRespPacket>(&MemWriteRespPacket::renew, i );
+
+	auto                rc         = acalsim::top->getRecycleContainer();
+	MemWriteRespPacket* memRespPkt = rc->acquire<MemWriteRespPacket>(&MemWriteRespPacket::renew, i);
 	rc->recycle(_memReqPkt);
 	callback(memRespPkt);
 }

@@ -32,7 +32,7 @@ public:
 	void process() override;
 
 private:
-	CPU*  cpu;
+	CPU* cpu;
 };
 
 #endif

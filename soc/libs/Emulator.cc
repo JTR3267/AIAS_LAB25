@@ -15,12 +15,13 @@
  */
 
 #include "Emulator.hh"
+
 #include "SystemConfig.hh"
 
-Emulator::Emulator(std::string _name, DataMemory *_dmem) : label_count(0), memoff(0), dmem(_dmem){
-	INFO << "asm_file_path : " << acalsim::top->getParameter<std::string>("Emulator", "asm_file_path");
+Emulator::Emulator(std::string _name, DataMemory* _dmem) : label_count(0), memoff(0), dmem(_dmem) {
+	CLASS_INFO << "asm_file_path : " << acalsim::top->getParameter<std::string>("Emulator", "asm_file_path");
 
-	INFO << "memory_size : " << acalsim::top->getParameter<int>("Emulator", "memory_size") << " Bytes";
+	CLASS_INFO << "memory_size : " << acalsim::top->getParameter<int>("Emulator", "memory_size") << " Bytes";
 
 	auto max_label_count = acalsim::top->getParameter<int>("Emulator", "max_label_count");
 	auto max_src_len     = acalsim::top->getParameter<int>("Emulator", "max_src_len");
@@ -29,10 +30,7 @@ Emulator::Emulator(std::string _name, DataMemory *_dmem) : label_count(0), memof
 	this->src.src        = (char*)malloc(sizeof(char) * max_src_len);
 }
 
-void Emulator::init(){
-	
-
-}
+void Emulator::init() {}
 
 void Emulator::append_source(const char* _op, const char* _a1, const char* _a2, const char* _a3, source* _src,
                              instr* _i) {
@@ -506,8 +504,8 @@ uint32_t Emulator::signextend(uint32_t _in, int _bits) {
 	return _in;
 }
 
-void Emulator::parse(const std::string& _file_path, uint8_t* _mem, instr* _imem){
-	this->parse(_file_path, _mem, _imem, this->memoff, this->labels, this->label_count,  &(this->src));
+void Emulator::parse(const std::string& _file_path, uint8_t* _mem, instr* _imem) {
+	this->parse(_file_path, _mem, _imem, this->memoff, this->labels, this->label_count, &(this->src));
 }
 
 void Emulator::parse(const std::string& _file_path, uint8_t* _mem, instr* _imem, int& _memoff, label_loc* _labels,
@@ -516,7 +514,7 @@ void Emulator::parse(const std::string& _file_path, uint8_t* _mem, instr* _imem,
 	if (!fin) { ERROR << _file_path << ": No such file"; }
 	int line = 0;
 
-	INFO << "Parsing input file";
+	CLASS_INFO << "Parsing input file";
 
 	// sectionType cur_section = SECTION_NONE;
 	char rbuf[1024];
@@ -566,7 +564,7 @@ void Emulator::parse(const std::string& _file_path, uint8_t* _mem, instr* _imem,
 	}
 }
 
-void Emulator::normalize_labels(instr* _imem){
+void Emulator::normalize_labels(instr* _imem) {
 	this->normalize_labels(_imem, this->labels, this->label_count, &(this->src));
 }
 
@@ -645,7 +643,6 @@ void Emulator::normalize_labels(instr* _imem, label_loc* _labels, int _label_cou
 	}
 }
 
-
 uint32_t Emulator::label_addr(char* _label, label_loc* _labels, int _label_count, int _orig_line) {
 	for (int i = 0; i < _label_count; i++) {
 		if (streq(_labels[i].label, _label)) return _labels[i].loc;
@@ -653,4 +650,3 @@ uint32_t Emulator::label_addr(char* _label, label_loc* _labels, int _label_count
 	print_syntax_error(_orig_line, "Undefined label");
 	return -1;
 }
-

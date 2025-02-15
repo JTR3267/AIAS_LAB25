@@ -18,7 +18,7 @@
 
 #include "DataMemory.hh"
 
-void MemReadRespPacket::renew(const instr& _i, instr_type _op,uint32_t _data, operand _a1) {
+void MemReadRespPacket::renew(const instr& _i, instr_type _op, uint32_t _data, operand _a1) {
 	this->acalsim::SimPacket::renew();
 	this->i    = _i;
 	this->op   = _op;
@@ -26,7 +26,8 @@ void MemReadRespPacket::renew(const instr& _i, instr_type _op,uint32_t _data, op
 	this->a1   = _a1;
 }
 
-void MemReadReqPacket::renew(std::function<void(MemReadRespPacket*)> _callback,  const instr& _i,  instr_type _op, uint32_t _addr, operand _a1) {
+void MemReadReqPacket::renew(std::function<void(MemReadRespPacket*)> _callback, const instr& _i, instr_type _op,
+                             uint32_t _addr, operand _a1) {
 	this->acalsim::SimPacket::renew();
 	this->callback = _callback;
 	this->i        = _i;
@@ -52,7 +53,8 @@ void MemWriteRespPacket::renew(const instr& _i) {
 	this->i = _i;
 }
 
-void MemWriteReqPacket::renew(std::function<void(MemWriteRespPacket *)> _callback, const instr& _i, instr_type _op, uint32_t _addr, uint32_t _data) {
+void MemWriteReqPacket::renew(std::function<void(MemWriteRespPacket*)> _callback, const instr& _i, instr_type _op,
+                              uint32_t _addr, uint32_t _data) {
 	this->acalsim::SimPacket::renew();
 	this->callback = _callback;
 	this->i        = _i;

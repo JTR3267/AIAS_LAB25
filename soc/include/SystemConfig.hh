@@ -32,30 +32,30 @@ using json = nlohmann::json;
  */
 class EmulatorConfig : public acalsim::SimConfig {
 public:
-    /**
-     * @brief Constructor that initializes emulator configuration parameters
-     * @param _name Name identifier for the configuration instance
-     * @details Sets up the following parameters:
-     *          - memory_size: Total memory size in bytes (default: 65536)
-     *          - data_offset: Starting offset for data segment (default: 8192)
-     *          - text_offset: Starting offset for text/code segment (default: 0)
-     *          - max_label_count: Maximum number of labels supported (default: 128)
-     *          - max_src_len: Maximum source code length in bytes (default: 1048576)
-     *          - asm_file_path: Path to the assembly source file (default: empty)
-     */
-    EmulatorConfig(const std::string& _name) : acalsim::SimConfig(_name) {
-        this->addParameter<int>("memory_size", 65536, acalsim::ParamType::INT);
-        this->addParameter<int>("data_offset", 8192, acalsim::ParamType::INT);
-        this->addParameter<int>("text_offset", 0, acalsim::ParamType::INT);
-        this->addParameter<int>("max_label_count", 128, acalsim::ParamType::INT);
-        this->addParameter<int>("max_src_len", 1048576, acalsim::ParamType::INT);
-        this->addParameter<std::string>("asm_file_path", "", acalsim::ParamType::STRING);
-    }
+	/**
+	 * @brief Constructor that initializes emulator configuration parameters
+	 * @param _name Name identifier for the configuration instance
+	 * @details Sets up the following parameters:
+	 *          - memory_size: Total memory size in bytes (default: 65536)
+	 *          - data_offset: Starting offset for data segment (default: 8192)
+	 *          - text_offset: Starting offset for text/code segment (default: 0)
+	 *          - max_label_count: Maximum number of labels supported (default: 128)
+	 *          - max_src_len: Maximum source code length in bytes (default: 1048576)
+	 *          - asm_file_path: Path to the assembly source file (default: empty)
+	 */
+	EmulatorConfig(const std::string& _name) : acalsim::SimConfig(_name) {
+		this->addParameter<int>("memory_size", 65536, acalsim::ParamType::INT);
+		this->addParameter<int>("data_offset", 8192, acalsim::ParamType::INT);
+		this->addParameter<int>("text_offset", 0, acalsim::ParamType::INT);
+		this->addParameter<int>("max_label_count", 128, acalsim::ParamType::INT);
+		this->addParameter<int>("max_src_len", 1048576, acalsim::ParamType::INT);
+		this->addParameter<std::string>("asm_file_path", "", acalsim::ParamType::STRING);
+	}
 
-    /**
-     * @brief Default destructor
-     */
-    ~EmulatorConfig() {}
+	/**
+	 * @brief Default destructor
+	 */
+	~EmulatorConfig() {}
 };
 
 /**
@@ -66,22 +66,22 @@ public:
  */
 class SOCConfig : public acalsim::SimConfig {
 public:
-    /**
-     * @brief Constructor that initializes SOC timing parameters
-     * @param _name Name identifier for the configuration instance
-     * @details Sets up the following parameters:
-     *          - memory_read_latency: Clock cycles for memory read operations (default: 1)
-     *          - memory_write_latency: Clock cycles for memory write operations (default: 1)
-     */
-    SOCConfig(const std::string& _name) : acalsim::SimConfig(_name) {
-        this->addParameter<acalsim::Tick>("memory_read_latency", 1, acalsim::ParamType::TICK);
-        this->addParameter<acalsim::Tick>("memory_write_latency", 1, acalsim::ParamType::TICK);
-    }
+	/**
+	 * @brief Constructor that initializes SOC timing parameters
+	 * @param _name Name identifier for the configuration instance
+	 * @details Sets up the following parameters:
+	 *          - memory_read_latency: Clock cycles for memory read operations (default: 1)
+	 *          - memory_write_latency: Clock cycles for memory write operations (default: 1)
+	 */
+	SOCConfig(const std::string& _name) : acalsim::SimConfig(_name) {
+		this->addParameter<acalsim::Tick>("memory_read_latency", 1, acalsim::ParamType::TICK);
+		this->addParameter<acalsim::Tick>("memory_write_latency", 1, acalsim::ParamType::TICK);
+	}
 
-    /**
-     * @brief Default destructor
-     */
-    ~SOCConfig() {}
+	/**
+	 * @brief Default destructor
+	 */
+	~SOCConfig() {}
 };
 
-#endif //SOC_INCLUDE_SYSTEMCONFIG_HH_
+#endif  // SOC_INCLUDE_SYSTEMCONFIG_HH_

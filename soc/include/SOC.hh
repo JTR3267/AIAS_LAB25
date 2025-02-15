@@ -32,7 +32,6 @@
 #include "DataStruct.hh"
 #include "Emulator.hh"
 
-
 /**
  * @class SOC
  * @brief System-on-Chip (SOC) module integrating CPU, memory, and ISA emulator
@@ -44,42 +43,42 @@
  */
 class SOC : public acalsim::STSimBase {
 public:
-    /**
-     * @brief Constructor for the SOC class
-     * @param _name Name identifier for the SOC instance (default: "top-level SOC")
-     */
-    SOC(std::string _name = "top-level SOC");
+	/**
+	 * @brief Constructor for the SOC class
+	 * @param _name Name identifier for the SOC instance (default: "top-level SOC")
+	 */
+	SOC(std::string _name = "top-level SOC");
 
-    /**
-     * @brief Virtual destructor
-     */
-    virtual ~SOC() {}
+	/**
+	 * @brief Virtual destructor
+	 */
+	virtual ~SOC() {}
 
-    /**
-     * @brief Registers all hardware modules in the system
-     * @details Sets up the connections between CPU, memory, and emulator
-     * @override Overrides base class method
-     */
-    void registerModules() override;
+	/**
+	 * @brief Registers all hardware modules in the system
+	 * @details Sets up the connections between CPU, memory, and emulator
+	 * @override Overrides base class method
+	 */
+	void registerModules() override;
 
-    /**
-     * @brief Initializes the simulation environment
-     * @details Performs necessary setup before simulation start
-     * @override Overrides base class method
-     */
-    void simInit() override;
+	/**
+	 * @brief Initializes the simulation environment
+	 * @details Performs necessary setup before simulation start
+	 * @override Overrides base class method
+	 */
+	void simInit() override;
 
-    /**
-     * @brief Performs cleanup after simulation
-     * @details Handles resource deallocation and final state management
-     * @override Overrides base class method
-     */
-    void cleanup() override;
+	/**
+	 * @brief Performs cleanup after simulation
+	 * @details Handles resource deallocation and final state management
+	 * @override Overrides base class method
+	 */
+	void cleanup() override;
 
 private:
-    Emulator* isaEmulator;    ///< ISA behavior model for instruction emulation
-    CPU* cpu;                 ///< Single-cycle CPU hardware model
-    DataMemory* dmem;         ///< Data memory subsystem model
+	Emulator*   isaEmulator;  ///< ISA behavior model for instruction emulation
+	CPU*        cpu;          ///< Single-cycle CPU hardware model
+	DataMemory* dmem;         ///< Data memory subsystem model
 };
 
 #endif  // SOC_INCLUDE_SOC_HH_

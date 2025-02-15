@@ -23,7 +23,7 @@ lab25/
 │   ├── Memory.hh
 │   ├── TrafficGenerator.cc
 │   └── TrafficGenerator.hh
-├── emulator/               # Source code of Lab 25-4
+├── soc/                    # Source code of Lab 25-4
 └── third-party/            # Third-party libraries
     ├── acalsim/            # ACALSim Framework Library (as a Git submodule)
     └── CMakeLists.txt      # CMake settings for third-party/ folder

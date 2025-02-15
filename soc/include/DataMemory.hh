@@ -33,41 +33,41 @@
  */
 class DataMemory : public acalsim::SimModule, public BaseMemory {
 public:
-    /**
-     * @brief Constructor for DataMemory
-     * @param _name Name identifier for the memory module
-     * @param _size Size of the memory in bytes
-     */
-    DataMemory(std::string _name, size_t _size) : acalsim::SimModule(_name), BaseMemory(_size) {}
+	/**
+	 * @brief Constructor for DataMemory
+	 * @param _name Name identifier for the memory module
+	 * @param _size Size of the memory in bytes
+	 */
+	DataMemory(std::string _name, size_t _size) : acalsim::SimModule(_name), BaseMemory(_size) {}
 
-    /**
-     * @brief Virtual destructor
-     */
-    virtual ~DataMemory() {}
+	/**
+	 * @brief Virtual destructor
+	 */
+	virtual ~DataMemory() {}
 
-    /**
-     * @brief Initializes memory with provided data
-     * @param _data Pointer to the data to be written
-     * @param _size Size of the data in bytes
-     * @details Writes the provided data to memory starting at address 0x0
-     */
-    void initMem(char* _data, size_t _size) { this->writeData(_data, (uint32_t)0x0, _size); }
+	/**
+	 * @brief Initializes memory with provided data
+	 * @param _data Pointer to the data to be written
+	 * @param _size Size of the data in bytes
+	 * @details Writes the provided data to memory starting at address 0x0
+	 */
+	void initMem(char* _data, size_t _size) { this->writeData(_data, (uint32_t)0x0, _size); }
 
-    /**
-     * @brief Handles memory read request packets
-     * @param _when Simulation time tick when the request was received
-     * @param _memReqPkt Pointer to the memory read request packet
-     * @details Processes incoming read requests and generates appropriate responses
-     */
-    void memReadReqHandler(acalsim::Tick _when, MemReadReqPacket* _memReqPkt);
+	/**
+	 * @brief Handles memory read request packets
+	 * @param _when Simulation time tick when the request was received
+	 * @param _memReqPkt Pointer to the memory read request packet
+	 * @details Processes incoming read requests and generates appropriate responses
+	 */
+	void memReadReqHandler(acalsim::Tick _when, MemReadReqPacket* _memReqPkt);
 
-    /**
-     * @brief Handles memory write request packets
-     * @param _when Simulation time tick when the request was received
-     * @param _memReqPkt Pointer to the memory write request packet
-     * @details Processes incoming write requests and updates memory contents
-     */
-    void memWriteReqHandler(acalsim::Tick _when, MemWriteReqPacket* _memReqPkt);
+	/**
+	 * @brief Handles memory write request packets
+	 * @param _when Simulation time tick when the request was received
+	 * @param _memReqPkt Pointer to the memory write request packet
+	 * @details Processes incoming write requests and updates memory contents
+	 */
+	void memWriteReqHandler(acalsim::Tick _when, MemWriteReqPacket* _memReqPkt);
 };
 
 #endif
