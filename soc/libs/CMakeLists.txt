@@ -25,7 +25,6 @@ get_filename_component(
 # User Configure
 # ##########################################################################
 # Setup the libaray name
-## You can modify the `template` below to any library name you prefer.
 set(APP_LIB_NAME soc)
 
 set(LIBS_SRCS

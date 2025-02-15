@@ -32,7 +32,7 @@
 
 class Emulator : virtual public acalsim::HashableType {
 public:
-	Emulator(std::string _name = "Emulator", DataMemory* _dmem = nullptr);
+	Emulator(std::string _name = "Emulator");
 	virtual ~Emulator() {}
 
 	void init();
@@ -60,11 +60,10 @@ public:
 	void     normalize_labels(instr* _imem, label_loc* _labels, int _label_count, source* _src);
 
 private:
-	label_loc*  labels;
-	int         label_count;
-	int         memoff;
-	source      src;
-	DataMemory* dmem;
+	label_loc* labels;
+	int        label_count;
+	int        memoff;
+	source     src;
 };
 
 #endif  // SOC_INCLUDE_EMULATOR_HH_

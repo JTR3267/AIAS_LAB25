@@ -18,7 +18,7 @@
 
 #include "SystemConfig.hh"
 
-Emulator::Emulator(std::string _name, DataMemory* _dmem) : label_count(0), memoff(0), dmem(_dmem) {
+Emulator::Emulator(std::string _name) : label_count(0), memoff(0) {
 	CLASS_INFO << "asm_file_path : " << acalsim::top->getParameter<std::string>("Emulator", "asm_file_path");
 
 	CLASS_INFO << "memory_size : " << acalsim::top->getParameter<int>("Emulator", "memory_size") << " Bytes";
@@ -171,17 +171,7 @@ int Emulator::parse_instr(int _line, char* _ftok, instr* _imem, int _memoff, lab
 		i->orig_line  = _line;
 		append_source(_ftok, o1, o2, o3, _src, i);
 		switch (op) {
-			case UNIMPL:
-				return 1;
-
-				// instruction added
-				//  case MUL:
-				//      if ( !o1 || !o2 || !o3 || o4 ) print_syntax_error( line,  "Invalid format" );
-				//  	    i->a1.reg = parse_reg(o1 , line);
-				//  	    i->a2.reg = parse_reg(o2 , line);
-				//  	    i->a3.reg = parse_reg(o3 , line);
-				//      return 1;
-				//****************
+			case UNIMPL: return 1;
 
 			case JAL:
 				if (o2) {  // two operands, reg, label
@@ -271,10 +261,6 @@ int Emulator::parse_instr(int _line, char* _ftok, instr* _imem, int _memoff, lab
 }
 
 instr_type Emulator::parse_instr(char* _tok) {
-	// instruction added
-	// if ( streq(tok , "mul")) return MUL;
-	//*****************
-
 	if (streq(_tok, "add")) return ADD;
 	if (streq(_tok, "sub")) return SUB;
 	if (streq(_tok, "slt")) return SLT;
@@ -370,8 +356,6 @@ int Emulator::parse_pseudoinstructions(int _line, char* _ftok, instr* _imem, int
 		i2->a3.imm    = (hv & ((1 << 12) - 1));
 		i2->orig_line = _line;
 		append_source("addi", areg, areg, immd, _src, i2);
-		// printf( ">> %d %x %d\n", reg, i->a2.imm, i->a2.imm );
-		// printf( ">> %d %x %d\n", reg, i2->a3.imm, i2->a3.imm );
 		return 2;
 	}
 	if (streq(_ftok, "la")) {

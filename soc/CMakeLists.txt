@@ -27,9 +27,4 @@ add_executable(${EXE_NAME} main.cc)
 add_subdirectory(libs)
 
 # Link libraries to the executable
-target_include_directories(
-    ${EXE_NAME}
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
 target_link_libraries(${EXE_NAME} PRIVATE soc_lib)
-target_link_libraries(${EXE_NAME} PUBLIC ACALSim::acalsim)

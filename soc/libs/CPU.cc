@@ -23,15 +23,10 @@
 #include "event/ExecOneInstrEvent.hh"
 #include "event/MemReqEvent.hh"
 
-CPU::CPU(std::string _name, Emulator*& _emulator, DataMemory* _dmem)
-    : acalsim::SimModule(_name),
-      pc(0),
-      inst_cnt(0),
-      isaEmulator(_emulator),
-      dmem(_dmem)  // Get DataMemory pointer
-{
+CPU::CPU(std::string _name, Emulator* _emulator)
+    : acalsim::SimModule(_name), pc(0), inst_cnt(0), isaEmulator(_emulator) {
 	auto data_offset = acalsim::top->getParameter<int>("Emulator", "data_offset");
-	this->imem       = (instr*)malloc(data_offset * sizeof(instr) / 4);
+	this->imem       = new instr[data_offset / 4];
 	for (int i = 0; i < data_offset / 4; i++) {
 		this->imem[i].op      = UNIMPL;
 		this->imem[i].a1.type = OPTYPE_NONE;
@@ -130,7 +125,7 @@ void CPU::processInstr(const instr& _i) {
 			break;
 	}
 
-	commitInstr(_i);
+	this->commitInstr(_i);
 	this->pc = pc_next;
 }
 
@@ -157,7 +152,7 @@ bool CPU::memRead(const instr& _i, instr_type _op, uint32_t _addr, operand _a1) 
 	MemReadReqPacket* pkt = rc->acquire<MemReadReqPacket>(&MemReadReqPacket::renew, callback, _i, _op, _addr, _a1);
 
 	if (latency == 1) {
-		this->dmem->accept(acalsim::top->getGlobalTick(), *((acalsim::SimPacket*)pkt));
+		this->getDownStream("DSDmem")->accept(acalsim::top->getGlobalTick(), *((acalsim::SimPacket*)pkt));
 	} else {
 		MemReqEvent* event = rc->acquire<MemReqEvent>(&MemReqEvent::renew,
 		                                              dynamic_cast<DataMemory*>(this->getDownStream("DSDmem")), pkt);
@@ -176,7 +171,7 @@ bool CPU::memWrite(const instr& _i, instr_type _op, uint32_t _addr, uint32_t _da
 	MemWriteReqPacket* pkt = rc->acquire<MemWriteReqPacket>(&MemWriteReqPacket::renew, callback, _i, _op, _addr, _data);
 
 	if (latency == 1) {
-		this->dmem->accept(acalsim::top->getGlobalTick(), *((acalsim::SimPacket*)pkt));
+		this->getDownStream("DSDmem")->accept(acalsim::top->getGlobalTick(), *((acalsim::SimPacket*)pkt));
 	} else {
 		MemReqEvent* event = rc->acquire<MemReqEvent>(&MemReqEvent::renew,
 		                                              dynamic_cast<DataMemory*>(this->getDownStream("DSDmem")), pkt);

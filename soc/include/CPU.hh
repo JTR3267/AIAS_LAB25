@@ -36,7 +36,7 @@ public:
 	 * @param _name Name identifier for the CPU instance
 	 * @param _emulator Pointer to the ISA emulator
 	 */
-	CPU(std::string _name, Emulator*& _emulator, DataMemory* _dmem);
+	CPU(std::string _name, Emulator* _emulator);
 
 	/**
 	 * @brief Destructor that frees instruction memory
@@ -130,12 +130,11 @@ protected:
 	inline const int& getInstCount() const { return this->inst_cnt; }
 
 private:
-	instr*      imem;         ///< Pointer to instruction memory
-	Emulator*   isaEmulator;  ///< Pointer to the ISA emulator
-	DataMemory* dmem;         ///< Pointer to data memory
-	uint32_t    rf[32];       ///< Register file with 32 general-purpose registers
-	uint32_t    pc;           ///< Program counter
-	int         inst_cnt;     ///< Counter for executed instructions
+	instr*    imem;         ///< Pointer to instruction memory
+	Emulator* isaEmulator;  ///< Pointer to the ISA emulator
+	uint32_t  rf[32];       ///< Register file with 32 general-purpose registers
+	uint32_t  pc;           ///< Program counter
+	int       inst_cnt;     ///< Counter for executed instructions
 };
 
 #endif

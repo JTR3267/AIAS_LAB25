@@ -31,18 +31,14 @@ void SOC::registerModules() {
 	// Get the maximal memory footprint size in the Emulator Configuration
 	size_t mem_size = acalsim::top->getParameter<int>("Emulator", "memory_size");
 
-	/* -----------------
-	 *   create modules
-	 */
-
 	// Data Memory Timing Model
 	this->dmem = new DataMemory("Data Memory", mem_size);
 
 	// Instruction Set Architecture Emulator (Functional Model)
-	this->isaEmulator = new Emulator("RISCV RV32I Emulator", this->dmem);
+	this->isaEmulator = new Emulator("RISCV RV32I Emulator");
 
 	// CPU Timing Model
-	this->cpu = new CPU("Single-Cycle CPU Model", this->isaEmulator, this->dmem);
+	this->cpu = new CPU("Single-Cycle CPU Model", this->isaEmulator);
 
 	// register modules
 	this->addModule(this->cpu);
