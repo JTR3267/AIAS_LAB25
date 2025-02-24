@@ -19,7 +19,9 @@
 #include <iomanip>
 #include <sstream>
 
+#include "AXI4Bus.hh"
 #include "DataMemory.hh"
+#include "event/AXI4BusAcqEvent.hh"
 #include "event/ExecOneInstrEvent.hh"
 #include "event/MemReqEvent.hh"
 
@@ -145,44 +147,33 @@ void CPU::commitInstr(const instr& _i) {
 bool CPU::memRead(const instr& _i, instr_type _op, uint32_t _addr, operand _a1) {
 	// If latency is larger than 1, e.g. cache miss or multi-cycle SRAM reads
 
-	auto rc       = acalsim::top->getRecycleContainer();
-	int  latency  = acalsim::top->getParameter<acalsim::Tick>("SOC", "memory_read_latency");
-	auto callback = [this](MemReadRespPacket* _pkt) { this->memReadRespHandler(_pkt); };
+	auto rc      = acalsim::top->getRecycleContainer();
+	int  latency = acalsim::top->getParameter<acalsim::Tick>("SOC", "memory_read_latency");
 
-	MemReadReqPacket* pkt = rc->acquire<MemReadReqPacket>(&MemReadReqPacket::renew, callback, _i, _op, _addr, _a1);
+	MemReadReqPacket* pkt = rc->acquire<MemReadReqPacket>(&MemReadReqPacket::renew, _i, _op, _addr, _a1, 1);
 
-	if (latency == 1) {
-		this->getDownStream("DSDmem")->accept(acalsim::top->getGlobalTick(), *((acalsim::SimPacket*)pkt));
-	} else {
-		MemReqEvent* event = rc->acquire<MemReqEvent>(&MemReqEvent::renew,
-		                                              dynamic_cast<DataMemory*>(this->getDownStream("DSDmem")), pkt);
-		this->scheduleEvent(event, acalsim::top->getGlobalTick() + latency - 1);
+	AXI4BusAcqEvent* event = rc->acquire<AXI4BusAcqEvent>(
+	    &AXI4BusAcqEvent::renew, dynamic_cast<AXI4Bus*>(this->getDownStream("DSAXI4Bus")), pkt);
+	this->scheduleEvent(event, acalsim::top->getGlobalTick() + 1);
 
-		return false;
-	}
-	return true;
+	return false;
 }
 
 bool CPU::memWrite(const instr& _i, instr_type _op, uint32_t _addr, uint32_t _data) {
-	auto rc       = acalsim::top->getRecycleContainer();
-	int  latency  = acalsim::top->getParameter<acalsim::Tick>("SOC", "memory_write_latency");
-	auto callback = [this](MemWriteRespPacket* _pkt) { this->memWriteRespHandler(_pkt); };
+	auto rc      = acalsim::top->getRecycleContainer();
+	int  latency = acalsim::top->getParameter<acalsim::Tick>("SOC", "memory_write_latency");
 
-	MemWriteReqPacket* pkt = rc->acquire<MemWriteReqPacket>(&MemWriteReqPacket::renew, callback, _i, _op, _addr, _data);
+	MemWriteReqPacket* pkt = rc->acquire<MemWriteReqPacket>(&MemWriteReqPacket::renew, _i, _op, _addr, _data);
 
-	if (latency == 1) {
-		this->getDownStream("DSDmem")->accept(acalsim::top->getGlobalTick(), *((acalsim::SimPacket*)pkt));
-	} else {
-		MemReqEvent* event = rc->acquire<MemReqEvent>(&MemReqEvent::renew,
-		                                              dynamic_cast<DataMemory*>(this->getDownStream("DSDmem")), pkt);
-		this->scheduleEvent(event, acalsim::top->getGlobalTick() + latency - 1);
-		// stall CPU pipeline
-		return false;
-	}
+	AXI4BusAcqEvent* event = rc->acquire<AXI4BusAcqEvent>(
+	    &AXI4BusAcqEvent::renew, dynamic_cast<AXI4Bus*>(this->getDownStream("DSAXI4Bus")), pkt);
+	this->scheduleEvent(event, acalsim::top->getGlobalTick() + 1);
+	// stall CPU pipeline
+	memWriteRespHandler(_i);
 	return true;
 }
 
-void CPU::memReadRespHandler(MemReadRespPacket* _pkt) {
+void CPU::memReadRespHandler(acalsim::Tick _when, MemReadRespPacket* _pkt) {
 	uint32_t data    = _pkt->getData();
 	instr    i       = _pkt->getInstr();
 	operand  a1      = _pkt->getA1();
@@ -192,10 +183,8 @@ void CPU::memReadRespHandler(MemReadRespPacket* _pkt) {
 	this->pc += 4;
 }
 
-void CPU::memWriteRespHandler(MemWriteRespPacket* _pkt) {
-	instr i = _pkt->getInstr();
-	acalsim::top->getRecycleContainer()->recycle(_pkt);
-	commitInstr(i);
+void CPU::memWriteRespHandler(const instr& _i) {
+	commitInstr(_i);
 	this->pc += 4;
 }
 

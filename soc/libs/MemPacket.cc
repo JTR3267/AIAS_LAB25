@@ -16,6 +16,8 @@
 
 #include "MemPacket.hh"
 
+#include "AXI4Bus.hh"
+#include "CPU.hh"
 #include "DataMemory.hh"
 
 void MemReadRespPacket::renew(const instr& _i, instr_type _op, uint32_t _data, operand _a1) {
@@ -26,19 +28,20 @@ void MemReadRespPacket::renew(const instr& _i, instr_type _op, uint32_t _data, o
 	this->a1   = _a1;
 }
 
-void MemReadReqPacket::renew(std::function<void(MemReadRespPacket*)> _callback, const instr& _i, instr_type _op,
-                             uint32_t _addr, operand _a1) {
+void MemReadReqPacket::renew(const instr& _i, instr_type _op, uint32_t _addr, operand _a1, int _burstSize) {
 	this->acalsim::SimPacket::renew();
-	this->callback = _callback;
-	this->i        = _i;
-	this->op       = _op;
-	this->addr     = _addr;
-	this->a1       = _a1;
+	this->i         = _i;
+	this->op        = _op;
+	this->addr      = _addr;
+	this->a1        = _a1;
+	this->burstSize = _burstSize;
 }
 
 void MemReadReqPacket::visit(acalsim::Tick _when, acalsim::SimModule& _module) {
 	if (auto dm = dynamic_cast<DataMemory*>(&_module)) {
-		dm->memReadReqHandler(_when, this);
+		dm->memReqHandler(_when, this);
+	} else if (auto axi4Bus = dynamic_cast<AXI4Bus*>(&_module)) {
+		axi4Bus->memReqHandler(_when, this);
 	} else {
 		CLASS_ERROR << "Invalid module type!";
 	}
@@ -53,19 +56,19 @@ void MemWriteRespPacket::renew(const instr& _i) {
 	this->i = _i;
 }
 
-void MemWriteReqPacket::renew(std::function<void(MemWriteRespPacket*)> _callback, const instr& _i, instr_type _op,
-                              uint32_t _addr, uint32_t _data) {
+void MemWriteReqPacket::renew(const instr& _i, instr_type _op, uint32_t _addr, uint32_t _data) {
 	this->acalsim::SimPacket::renew();
-	this->callback = _callback;
-	this->i        = _i;
-	this->op       = _op;
-	this->addr     = _addr;
-	this->data     = _data;
+	this->i    = _i;
+	this->op   = _op;
+	this->addr = _addr;
+	this->data = _data;
 }
 
 void MemWriteReqPacket::visit(acalsim::Tick _when, acalsim::SimModule& _module) {
 	if (auto dm = dynamic_cast<DataMemory*>(&_module)) {
-		dm->memWriteReqHandler(_when, this);
+		dm->memReqHandler(_when, this);
+	} else if (auto axi4Bus = dynamic_cast<AXI4Bus*>(&_module)) {
+		axi4Bus->memReqHandler(_when, this);
 	} else {
 		CLASS_ERROR << "Invalid module type!";
 	}
@@ -76,7 +79,13 @@ void MemWriteReqPacket::visit(acalsim::Tick _when, acalsim::SimBase& _simulator)
 }
 
 void MemReadRespPacket::visit(acalsim::Tick _when, acalsim::SimModule& _module) {
-	CLASS_ERROR << "void MemReadRespPacket::visit (SimModule& module) is not implemented yet!";
+	if (auto axi4Bus = dynamic_cast<AXI4Bus*>(&_module)) {
+		axi4Bus->memRespHandler(_when, this);
+	} else if (auto cpu = dynamic_cast<CPU*>(&_module)) {
+		cpu->memReadRespHandler(_when, this);
+	} else {
+		CLASS_ERROR << "void MemReadRespPacket::visit (SimModule& module) is not implemented yet!";
+	}
 }
 
 void MemReadRespPacket::visit(acalsim::Tick _when, acalsim::SimBase& _simulator) {

@@ -27,6 +27,7 @@
 #include <memory>
 
 #include "ACALSim.hh"
+#include "AXI4Bus.hh"
 #include "CPU.hh"
 #include "DataMemory.hh"
 #include "DataStruct.hh"
@@ -78,7 +79,8 @@ public:
 private:
 	Emulator*   isaEmulator;  ///< ISA behavior model for instruction emulation
 	CPU*        cpu;          ///< Single-cycle CPU hardware model
-	DataMemory* dmem;         ///< Data memory subsystem model
+	AXI4Bus*    axi4Bus;
+	DataMemory* dmem;  ///< Data memory subsystem model
 };
 
 #endif  // SOC_INCLUDE_SOC_HH_
