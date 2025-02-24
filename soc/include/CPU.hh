@@ -84,13 +84,13 @@ public:
 	 * @brief Handles response from memory read operations
 	 * @param _pkt Packet containing memory read response data
 	 */
-	void memReadRespHandler(MemReadRespPacket* _pkt);
+	void memReadRespHandler(acalsim::Tick _when, MemReadRespPacket* _pkt);
 
 	/**
 	 * @brief Handles response from memory write operations
 	 * @param _pkt Packet containing memory write response data
 	 */
-	void memWriteRespHandler(MemWriteRespPacket* _pkt);
+	void memWriteRespHandler(const instr& _i);
 
 	/**
 	 * @brief Returns pointer to instruction memory

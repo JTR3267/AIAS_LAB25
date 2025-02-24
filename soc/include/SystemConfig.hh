@@ -76,6 +76,8 @@ public:
 	SOCConfig(const std::string& _name) : acalsim::SimConfig(_name) {
 		this->addParameter<acalsim::Tick>("memory_read_latency", 1, acalsim::ParamType::TICK);
 		this->addParameter<acalsim::Tick>("memory_write_latency", 1, acalsim::ParamType::TICK);
+		this->addParameter<int>("bus_width", 32, acalsim::ParamType::INT);
+		this->addParameter<std::string>("bus_burst_mode", "FIXED", acalsim::ParamType::STRING);
 	}
 
 	/**

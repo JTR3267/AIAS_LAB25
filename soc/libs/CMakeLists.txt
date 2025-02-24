@@ -36,6 +36,10 @@ set(LIBS_SRCS
     DataMemory.cc
     Emulator.cc
     SOC.cc
+    event/AXI4BusAcqEvent.cc
+    AXI4Bus.cc
+    event/MemRespEvent.cc
+    event/MemReqDoneEvent.cc
 )
 # ##########################################################################
 # # Build rules

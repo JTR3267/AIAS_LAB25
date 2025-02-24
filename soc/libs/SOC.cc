@@ -29,7 +29,17 @@ SOC::SOC(std::string _name) : acalsim::STSimBase(_name) {
 
 void SOC::registerModules() {
 	// Get the maximal memory footprint size in the Emulator Configuration
-	size_t mem_size = acalsim::top->getParameter<int>("Emulator", "memory_size");
+	size_t      mem_size  = acalsim::top->getParameter<int>("Emulator", "memory_size");
+	int         bus_width = acalsim::top->getParameter<int>("SOC", "bus_width");
+	BurstMode   bus_burst_mode;
+	std::string config_burst_mode = acalsim::top->getParameter<std::string>("SOC", "bus_burst_mode");
+	if (config_burst_mode == "FIXED") {
+		bus_burst_mode = BurstMode::FIXED;
+	} else if (config_burst_mode == "INCR") {
+		bus_burst_mode = BurstMode::INCR;
+	} else {
+		CLASS_ERROR << "Wrong bus burst mode";
+	}
 
 	// Data Memory Timing Model
 	this->dmem = new DataMemory("Data Memory", mem_size);
@@ -40,13 +50,18 @@ void SOC::registerModules() {
 	// CPU Timing Model
 	this->cpu = new CPU("Single-Cycle CPU Model", this->isaEmulator);
 
+	this->axi4Bus = new AXI4Bus("AXI4 Bus", bus_width, bus_burst_mode);
+
 	// register modules
 	this->addModule(this->cpu);
+	this->addModule(this->axi4Bus);
 	this->addModule(this->dmem);
 
 	// connect modules (connected_module, master port name, slave port name)
-	this->cpu->addDownStream(this->dmem, "DSDmem");
-	this->dmem->addUpStream(this->cpu, "USCPU");
+	this->cpu->addDownStream(this->axi4Bus, "DSAXI4Bus");
+	this->axi4Bus->addDownStream(this->dmem, "DSDmem");
+	this->axi4Bus->addUpStream(this->cpu, "USCPU");
+	this->dmem->addUpStream(this->axi4Bus, "USAXI4Bus");
 }
 
 void SOC::simInit() {
