@@ -14,9 +14,11 @@ public:
 
 	virtual ~AXI4Bus() {}
 
-	bool memReqHandler(acalsim::Tick _when, acalsim::SimPacket* _memReqPkt);
+	bool axi4BusReqHandler(acalsim::Tick _when, MemReqPacket* _memReqPkt);
 
-	bool memRespHandler(acalsim::Tick _when, acalsim::SimPacket* _memRespPkt);
+	bool axi4BusReadRespHandler(acalsim::Tick _when, MemReadRespPacket* _memReadRespPkt);
+
+	BurstMode getBurstMode() { return this->burstMode; }
 
 private:
 	size_t    busWidth;

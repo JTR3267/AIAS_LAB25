@@ -30,7 +30,7 @@ set(APP_LIB_NAME soc)
 set(LIBS_SRCS
     CPU.cc
     event/ExecOneInstrEvent.cc
-    event/MemReqEvent.cc
+    event/DMemCommEvent.cc
     MemPacket.cc
     BaseMemory.cc
     DataMemory.cc
@@ -38,8 +38,13 @@ set(LIBS_SRCS
     SOC.cc
     event/AXI4BusAcqEvent.cc
     AXI4Bus.cc
-    event/MemRespEvent.cc
+    event/CPUCommEvent.cc
     event/MemReqDoneEvent.cc
+    event/DMACommEvent.cc
+    event/DMAReqDoneEvent.cc
+    event/DMAStartEvent.cc
+    event/DMAEndEvent.cc
+    DMA.cc
 )
 # ##########################################################################
 # # Build rules

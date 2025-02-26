@@ -9,6 +9,7 @@
   },
   "SOC": {
     "memory_read_latency": 5,
-    "memory_write_latency": 1
+    "memory_write_latency": 1,
+    "bus_burst_mode": "INCR"
   }
 }

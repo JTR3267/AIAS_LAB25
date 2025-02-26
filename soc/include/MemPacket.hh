@@ -33,7 +33,33 @@ class MemWriteRespPacket;
  * @brief Memory read request packet class for memory operations
  * @details Handles memory read requests with instruction information and callback handling
  */
-class MemReadReqPacket : public acalsim::SimPacket {
+class MemReqPacket : public acalsim::SimPacket {
+public:
+	MemReqPacket() {}
+
+	MemReqPacket(const instr& _i, instr_type _op, uint32_t _addr) : acalsim::SimPacket(), i(_i), op(_op), addr(_addr) {}
+
+	virtual ~MemReqPacket() {}
+
+	void renew(const instr& _i, instr_type _op, uint32_t _addr);
+
+	void visit(acalsim::Tick _when, acalsim::SimModule& _module) override;
+
+	void visit(acalsim::Tick _when, acalsim::SimBase& _simulator) override;
+
+	const instr& getInstr() { return this->i; }
+
+	const instr_type& getOP() { return this->op; }
+
+	const uint32_t& getAddr() { return this->addr; }
+
+private:
+	instr      i;
+	instr_type op;
+	uint32_t   addr;
+};
+
+class MemReadReqPacket : public MemReqPacket {
 public:
 	/** @brief Default constructor */
 	MemReadReqPacket() {}
@@ -46,8 +72,9 @@ public:
 	 * @param _addr Memory address to read from
 	 * @param _a1 Operand for the read operation
 	 */
-	MemReadReqPacket(const instr& _i, instr_type _op, uint32_t _addr, operand _a1, int _burstSize)
-	    : acalsim::SimPacket(), i(_i), op(_op), addr(_addr), a1(_a1), burstSize(_burstSize) {}
+	MemReadReqPacket(const instr& _i, instr_type _op, uint32_t _addr, operand _a1, int _burstSize,
+	                 acalsim::SimModule* _sender)
+	    : MemReqPacket(_i, _op, _addr), a1(_a1), burstSize(_burstSize), sender(_sender) {}
 
 	/** @brief Virtual destructor */
 	virtual ~MemReadReqPacket() {}
@@ -60,29 +87,17 @@ public:
 	 * @param _addr New memory address
 	 * @param _a1 New operand
 	 */
-	void renew(const instr& _i, instr_type _op, uint32_t _addr, operand _a1, int _burstSize);
-
-	/** @brief Visit function for module interaction */
-	void visit(acalsim::Tick _when, acalsim::SimModule& _module) override;
-	/** @brief Visit function for simulator interaction */
-	void visit(acalsim::Tick _when, acalsim::SimBase& _simulator) override;
-
-	/** @return The instruction associated with this request */
-	const instr& getInstr() { return this->i; }
-	/** @return The operation type */
-	const instr_type& getOP() { return this->op; }
-	/** @return The memory address */
-	const uint32_t& getAddr() { return this->addr; }
+	void renew(const instr& _i, instr_type _op, uint32_t _addr, operand _a1, int _burstSize,
+	           acalsim::SimModule* _sender);
 	/** @return The operand */
-	const operand getA1() { return this->a1; }
-	const int getBurstSize() { return this->burstSize; }
+	const operand       getA1() { return this->a1; }
+	const int           getBurstSize() { return this->burstSize; }
+	acalsim::SimModule* getSender() { return this->sender; }
 
 private:
-	instr      i;     ///< Associated instruction
-	instr_type op;    ///< Operation type
-	uint32_t   addr;  ///< Memory address
-	operand    a1;    ///< Operand
-	int        burstSize;
+	operand             a1;  ///< Operand
+	int                 burstSize;
+	acalsim::SimModule* sender;
 };
 
 /**
@@ -90,7 +105,7 @@ private:
  * @brief Memory write request packet class
  * @details Handles memory write requests with data and callback handling
  */
-class MemWriteReqPacket : public acalsim::SimPacket {
+class MemWriteReqPacket : public MemReqPacket {
 public:
 	/** @brief Default constructor */
 	MemWriteReqPacket() {}
@@ -103,8 +118,8 @@ public:
 	 * @param _addr Memory address to write to
 	 * @param _data Data to write (default: 0)
 	 */
-	MemWriteReqPacket(const instr& _i, instr_type _op, uint32_t _addr, uint32_t _data = 0)
-	    : acalsim::SimPacket(), i(_i), op(_op), addr(_addr), data(_data) {}
+	MemWriteReqPacket(const instr& _i, instr_type _op, uint32_t _addr, uint32_t _data = 0, int _validBytes = 4)
+	    : MemReqPacket(_i, _op, _addr), data(_data), validBytes(_validBytes) {}
 
 	/** @brief Virtual destructor */
 	virtual ~MemWriteReqPacket() {}
@@ -117,27 +132,15 @@ public:
 	 * @param _addr New memory address
 	 * @param _data New data to write
 	 */
-	void renew(const instr& _i, instr_type _op, uint32_t _addr, uint32_t _data = 0);
-
-	/** @brief Visit function for module interaction */
-	void visit(acalsim::Tick _when, acalsim::SimModule& _module) override;
-	/** @brief Visit function for simulator interaction */
-	void visit(acalsim::Tick _when, acalsim::SimBase& _simulator) override;
-
-	/** @return The instruction associated with this request */
-	const instr& getInstr() { return this->i; }
-	/** @return The operation type */
-	const instr_type& getOP() { return this->op; }
-	/** @return The memory address */
-	const uint32_t& getAddr() { return this->addr; }
+	void renew(const instr& _i, instr_type _op, uint32_t _addr, uint32_t _data = 0, int _validBytes = 4);
 	/** @return The data to write */
 	const uint32_t& getData() { return this->data; }
 
+	const int& getValidBytes() { return this->validBytes; }
+
 private:
-	instr      i;     ///< Associated instruction
-	instr_type op;    ///< Operation type
-	uint32_t   addr;  ///< Memory address
-	uint32_t   data;  ///< Data to write
+	uint32_t data;  ///< Data to write
+	int      validBytes;
 };
 
 /**
@@ -157,8 +160,8 @@ public:
 	 * @param _data Data read from memory
 	 * @param _a1 Associated operand
 	 */
-	MemReadRespPacket(const instr& _i, instr_type _op, uint32_t _data, operand _a1)
-	    : acalsim::SimPacket(), i(_i), op(_op), data(_data), a1(_a1) {}
+	MemReadRespPacket(const instr& _i, instr_type _op, uint32_t _data, operand _a1, acalsim::SimModule* _receiver)
+	    : acalsim::SimPacket(), i(_i), op(_op), data(_data), a1(_a1), receiver(_receiver) {}
 
 	/** @brief Virtual destructor */
 	virtual ~MemReadRespPacket() {}
@@ -172,6 +175,7 @@ public:
 	/** @return The associated operand */
 	const operand& getA1() { return this->a1; }
 
+	acalsim::SimModule* getReceiver() { return this->receiver; }
 	/**
 	 * @brief Renews the packet with new parameters
 	 * @param _i New instruction
@@ -179,7 +183,7 @@ public:
 	 * @param _data New data
 	 * @param _a1 New operand
 	 */
-	void renew(const instr& _i, instr_type _op, uint32_t _data, operand _a1);
+	void renew(const instr& _i, instr_type _op, uint32_t _data, operand _a1, acalsim::SimModule* _receiver);
 
 	/** @brief Visit function for module interaction */
 	void visit(acalsim::Tick _when, acalsim::SimModule& _module) override;
@@ -187,10 +191,11 @@ public:
 	void visit(acalsim::Tick _when, acalsim::SimBase& _simulator) override;
 
 private:
-	instr      i;     ///< Associated instruction
-	instr_type op;    ///< Operation type
-	uint32_t   data;  ///< Data read from memory
-	operand    a1;    ///< Associated operand
+	instr               i;     ///< Associated instruction
+	instr_type          op;    ///< Operation type
+	uint32_t            data;  ///< Data read from memory
+	operand             a1;    ///< Associated operand
+	acalsim::SimModule* receiver;
 };
 
 /**

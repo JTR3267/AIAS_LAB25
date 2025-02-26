@@ -23,7 +23,6 @@
 #include "DataMemory.hh"
 #include "event/AXI4BusAcqEvent.hh"
 #include "event/ExecOneInstrEvent.hh"
-#include "event/MemReqEvent.hh"
 
 CPU::CPU(std::string _name, Emulator* _emulator)
     : acalsim::SimModule(_name), pc(0), inst_cnt(0), isaEmulator(_emulator) {
@@ -150,7 +149,7 @@ bool CPU::memRead(const instr& _i, instr_type _op, uint32_t _addr, operand _a1) 
 	auto rc      = acalsim::top->getRecycleContainer();
 	int  latency = acalsim::top->getParameter<acalsim::Tick>("SOC", "memory_read_latency");
 
-	MemReadReqPacket* pkt = rc->acquire<MemReadReqPacket>(&MemReadReqPacket::renew, _i, _op, _addr, _a1, 1);
+	MemReadReqPacket* pkt = rc->acquire<MemReadReqPacket>(&MemReadReqPacket::renew, _i, _op, _addr, _a1, 1, this);
 
 	AXI4BusAcqEvent* event = rc->acquire<AXI4BusAcqEvent>(
 	    &AXI4BusAcqEvent::renew, dynamic_cast<AXI4Bus*>(this->getDownStream("DSAXI4Bus")), pkt);
@@ -160,31 +159,25 @@ bool CPU::memRead(const instr& _i, instr_type _op, uint32_t _addr, operand _a1) 
 }
 
 bool CPU::memWrite(const instr& _i, instr_type _op, uint32_t _addr, uint32_t _data) {
-	auto rc      = acalsim::top->getRecycleContainer();
-	int  latency = acalsim::top->getParameter<acalsim::Tick>("SOC", "memory_write_latency");
+	auto rc = acalsim::top->getRecycleContainer();
 
-	MemWriteReqPacket* pkt = rc->acquire<MemWriteReqPacket>(&MemWriteReqPacket::renew, _i, _op, _addr, _data);
+	MemWriteReqPacket* pkt = rc->acquire<MemWriteReqPacket>(&MemWriteReqPacket::renew, _i, _op, _addr, _data, 4);
 
 	AXI4BusAcqEvent* event = rc->acquire<AXI4BusAcqEvent>(
 	    &AXI4BusAcqEvent::renew, dynamic_cast<AXI4Bus*>(this->getDownStream("DSAXI4Bus")), pkt);
 	this->scheduleEvent(event, acalsim::top->getGlobalTick() + 1);
 	// stall CPU pipeline
-	memWriteRespHandler(_i);
-	return true;
+	return false;
 }
 
-void CPU::memReadRespHandler(acalsim::Tick _when, MemReadRespPacket* _pkt) {
-	uint32_t data    = _pkt->getData();
-	instr    i       = _pkt->getInstr();
-	operand  a1      = _pkt->getA1();
+void CPU::cpuReadRespHandler(acalsim::Tick _when, MemReadRespPacket* _memReadRespPkt) {
+	uint32_t data = _memReadRespPkt->getData();
+	instr    i    = _memReadRespPkt->getInstr();
+	operand  a1   = _memReadRespPkt->getA1();
+
 	this->rf[a1.reg] = data;
-	acalsim::top->getRecycleContainer()->recycle(_pkt);
+	acalsim::top->getRecycleContainer()->recycle(_memReadRespPkt);
 	commitInstr(i);
-	this->pc += 4;
-}
-
-void CPU::memWriteRespHandler(const instr& _i) {
-	commitInstr(_i);
 	this->pc += 4;
 }
 

@@ -78,6 +78,8 @@ public:
 		this->addParameter<acalsim::Tick>("memory_write_latency", 1, acalsim::ParamType::TICK);
 		this->addParameter<int>("bus_width", 32, acalsim::ParamType::INT);
 		this->addParameter<std::string>("bus_burst_mode", "FIXED", acalsim::ParamType::STRING);
+		this->addParameter<int>("dma_base_adr", 0xf000, acalsim::ParamType::INT);
+		this->addParameter<int>("dma_adr_size", 64, acalsim::ParamType::INT);
 	}
 
 	/**

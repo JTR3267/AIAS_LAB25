@@ -1,34 +1,53 @@
 #include "AXI4Bus.hh"
 
 #include "CPU.hh"
+#include "DMA.hh"
 #include "DataMemory.hh"
-#include "event/MemReqEvent.hh"
-#include "event/MemRespEvent.hh"
+#include "MemPacket.hh"
+#include "event/CPUCommEvent.hh"
+#include "event/DMACommEvent.hh"
+#include "event/DMemCommEvent.hh"
 
 AXI4Bus::AXI4Bus(std::string _name, size_t _busWidth, BurstMode _burstMode)
     : acalsim::SimModule(_name), busWidth(_busWidth), burstMode(_burstMode) {}
 
-bool AXI4Bus::memReqHandler(acalsim::Tick _when, acalsim::SimPacket* _memReqPkt) {
-	if (auto pkt = dynamic_cast<MemReadReqPacket*>(_memReqPkt)) {
-		int burstSize = pkt->getBurstSize();
-		if ((this->burstMode == BurstMode::FIXED && burstSize > 1) ||
-		    (this->burstMode == BurstMode::INCR && (burstSize != 1 || burstSize != 2 || burstSize != 4))) {
-			CLASS_ERROR << "Wrong burst size!";
+bool AXI4Bus::axi4BusReqHandler(acalsim::Tick _when, MemReqPacket* _memReqPkt) {
+	auto               adr          = _memReqPkt->getAddr();
+	auto               rc           = acalsim::top->getRecycleContainer();
+	auto               dma_base_adr = static_cast<DMA*>(this->getUpStream("USDMA"))->getBaseAddr();
+	acalsim::SimEvent* event;
+
+	if (adr >= dma_base_adr) {
+		event =
+		    rc->acquire<DMACommEvent>(&DMACommEvent::renew, dynamic_cast<DMA*>(this->getUpStream("USDMA")), _memReqPkt);
+	} else {
+		if (auto pkt = dynamic_cast<MemReadReqPacket*>(_memReqPkt)) {
+			int burstSize = pkt->getBurstSize();
+			if ((this->burstMode == BurstMode::FIXED && burstSize > 1) ||
+			    (this->burstMode == BurstMode::INCR && burstSize != 1 && burstSize != 2 && burstSize != 4)) {
+				CLASS_ERROR << "Wrong burst size!";
+			}
 		}
+		event = rc->acquire<DMemCommEvent>(&DMemCommEvent::renew,
+		                                   dynamic_cast<DataMemory*>(this->getUpStream("USDmem")), _memReqPkt);
 	}
 
-	auto         rc    = acalsim::top->getRecycleContainer();
-	MemReqEvent* event = rc->acquire<MemReqEvent>(&MemReqEvent::renew,
-	                                              dynamic_cast<DataMemory*>(this->getDownStream("DSDmem")), _memReqPkt);
 	this->scheduleEvent(event, acalsim::top->getGlobalTick() + 1);
-
 	return false;
 }
 
-bool AXI4Bus::memRespHandler(acalsim::Tick _when, acalsim::SimPacket* _memRespPkt) {
-	auto          rc = acalsim::top->getRecycleContainer();
-	MemRespEvent* event =
-	    rc->acquire<MemRespEvent>(&MemRespEvent::renew, dynamic_cast<CPU*>(this->getUpStream("USCPU")), _memRespPkt);
+bool AXI4Bus::axi4BusReadRespHandler(acalsim::Tick _when, MemReadRespPacket* _memReadRespPkt) {
+	auto               rc = acalsim::top->getRecycleContainer();
+	acalsim::SimEvent* event;
+
+	if (auto dma = dynamic_cast<DMA*>(_memReadRespPkt->getReceiver())) {
+		event = rc->acquire<DMACommEvent>(&DMACommEvent::renew, dynamic_cast<DMA*>(this->getUpStream("USDMA")),
+		                                  _memReadRespPkt);
+	} else if (auto cpu = dynamic_cast<CPU*>(_memReadRespPkt->getReceiver())) {
+		event = rc->acquire<CPUCommEvent>(&CPUCommEvent::renew, dynamic_cast<CPU*>(this->getUpStream("USCPU")),
+		                                  _memReadRespPkt);
+	}
+
 	this->scheduleEvent(event, acalsim::top->getGlobalTick() + 1);
 
 	return false;

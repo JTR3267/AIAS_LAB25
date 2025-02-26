@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-#include "event/MemReqEvent.hh"
+#include "event/DMemCommEvent.hh"
 
 #include "DataMemory.hh"
 
-MemReqEvent::MemReqEvent(DataMemory* _callee, acalsim::SimPacket* _memReqPkt)
+DMemCommEvent::DMemCommEvent(DataMemory* _callee, MemReqPacket* _memReqPkt)
     : acalsim::SimEvent("MemReqEvent"), callee(_callee), memReqPkt(_memReqPkt) {}
 
-void MemReqEvent::renew(DataMemory* _callee, acalsim::SimPacket* _memReqPkt) {
+void DMemCommEvent::renew(DataMemory* _callee, MemReqPacket* _memReqPkt) {
 	this->acalsim::SimEvent::renew();
 	this->callee    = _callee;
 	this->memReqPkt = _memReqPkt;
 }
 
-void MemReqEvent::process() { this->callee->accept(acalsim::top->getGlobalTick(), *this->memReqPkt); }
+void DMemCommEvent::process() { this->callee->accept(acalsim::top->getGlobalTick(), *this->memReqPkt); }

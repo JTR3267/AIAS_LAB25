@@ -14,25 +14,26 @@
  * limitations under the License.
  */
 
-#ifndef EMULATOR_INCLUDE_EVENT_MEMREQEVENT_HH_
-#define EMULATOR_INCLUDE_EVENT_MEMREQEVENT_HH_
+#ifndef EMULATOR_INCLUDE_EVENT_DMEMCOMMEVENT_HH_
+#define EMULATOR_INCLUDE_EVENT_DMEMCOMMEVENT_HH_
 
 #include "ACALSim.hh"
+#include "MemPacket.hh"
 
 class DataMemory;
 
-class MemReqEvent : public acalsim::SimEvent {
+class DMemCommEvent : public acalsim::SimEvent {
 public:
-	MemReqEvent() = default;
-	MemReqEvent(DataMemory* _callee, acalsim::SimPacket* _memReqPkt);
-	virtual ~MemReqEvent() = default;
+	DMemCommEvent() = default;
+	DMemCommEvent(DataMemory* _callee, MemReqPacket* _memReqPkt);
+	virtual ~DMemCommEvent() = default;
 
-	void renew(DataMemory* _callee, acalsim::SimPacket* _memReqPkt);
+	void renew(DataMemory* _callee, MemReqPacket* _memReqPkt);
 	void process() override;
 
 private:
-	DataMemory*         callee;
-	acalsim::SimPacket* memReqPkt;
+	DataMemory*   callee;
+	MemReqPacket* memReqPkt;
 };
 
 #endif

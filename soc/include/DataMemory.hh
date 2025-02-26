@@ -25,10 +25,10 @@
 #include "DataStruct.hh"
 #include "MemPacket.hh"
 
-typedef struct QueueElement {
-	acalsim::SimPacket* pkt;
-	int                 burstCount;
-} QueueElement;
+typedef struct ReqInfo {
+	MemReqPacket* memReqPkt;
+	int           burstCount;
+} ReqInfo;
 
 /**
  * @class DataMemory
@@ -57,7 +57,7 @@ public:
 	 * @param _memReqPkt Pointer to the memory read request packet
 	 * @details Processes incoming read requests and generates appropriate responses
 	 */
-	void memReadReqHandler(MemReadReqPacket* _memReqPkt, int burstCount);
+	void memReadReqHandler(MemReadReqPacket* _memReadReqPkt, int burstCount);
 
 	/**
 	 * @brief Handles memory write request packets
@@ -65,13 +65,15 @@ public:
 	 * @param _memReqPkt Pointer to the memory write request packet
 	 * @details Processes incoming write requests and updates memory contents
 	 */
-	void memWriteReqHandler(MemWriteReqPacket* _memReqPkt);
-	void memReqHandler(acalsim::Tick _when, acalsim::SimPacket* _memReqPkt);
+	void memWriteReqHandler(MemWriteReqPacket* _memWriteReqPkt);
+
+	void memReqHandler(acalsim::Tick _when, MemReqPacket* _memReqPkt);
+
 	void triggerNextReq();
 
 private:
-	std::queue<QueueElement> pending_req_queue_;
-	bool                     is_idle_ = true;
+	std::queue<ReqInfo> pending_req_queue;
+	bool                is_idle = true;
 };
 
 #endif
