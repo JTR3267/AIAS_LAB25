@@ -156,6 +156,11 @@ bool CPU::memRead(const instr& _i, instr_type _op, uint32_t _addr, operand _a1) 
 	    &AXI4BusAcqEvent::renew, dynamic_cast<AXI4Bus*>(this->getDownStream("DSAXI4Bus")), pkt);
 	this->scheduleEvent(event, acalsim::top->getGlobalTick() + 1);
 
+	acalsim::top->addChromeTraceRecord(acalsim::ChromeTraceRecord::createCompleteEvent(
+	    /* pid */ "Req-" + std::to_string(pkt->getID()), /* name */ "Read Bus Acq Event",
+	    /* ts */ acalsim::top->getGlobalTick(), /* dur */ 1, /* cat */ "", /* tid */ "",
+	    /* args */ nullptr));
+
 	return false;
 }
 
@@ -170,6 +175,12 @@ bool CPU::memWrite(const instr& _i, instr_type _op, uint32_t _addr, uint32_t _da
 	this->scheduleEvent(event, acalsim::top->getGlobalTick() + 1);
 	// stall CPU pipeline
 	memWriteRespHandler(_i);
+
+	acalsim::top->addChromeTraceRecord(acalsim::ChromeTraceRecord::createCompleteEvent(
+	    /* pid */ "Req-" + std::to_string(pkt->getID()), /* name */ "Write Bus Acq Event",
+	    /* ts */ acalsim::top->getGlobalTick(), /* dur */ 1, /* cat */ "", /* tid */ "",
+	    /* args */ nullptr));
+
 	return true;
 }
 

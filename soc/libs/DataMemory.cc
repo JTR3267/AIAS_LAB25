@@ -31,6 +31,11 @@ void DataMemory::memReqHandler(acalsim::Tick _when, acalsim::SimPacket* _memReqP
 	if (this->is_idle_) {
 		this->is_idle_ = false;
 		triggerNextReq();
+	} else {
+		acalsim::top->addChromeTraceRecord(acalsim::ChromeTraceRecord::createDurationEvent(
+		    /* ph */ "B", /* pid */ "Req-" + std::to_string(_memReqPkt->getID()), /* name */ "Req Pending",
+		    /* ts */ acalsim::top->getGlobalTick(), /* cat */ "", /* tid */ "",
+		    /* args */ nullptr));
 	}
 }
 
@@ -42,6 +47,12 @@ void DataMemory::triggerNextReq() {
 		} else if (auto pkt = dynamic_cast<MemWriteReqPacket*>(queueFront.pkt)) {
 			memWriteReqHandler(pkt);
 		}
+
+		acalsim::top->addChromeTraceRecord(acalsim::ChromeTraceRecord::createDurationEvent(
+		    /* ph */ "E", /* pid */ "Req-" + std::to_string(queueFront.pkt->getID()), /* name */ "Req Pending",
+		    /* ts */ acalsim::top->getGlobalTick(), /* cat */ "", /* tid */ "",
+		    /* args */ nullptr));
+
 		this->pending_req_queue_.pop();
 	} else {
 		this->is_idle_ = true;
@@ -84,6 +95,16 @@ void DataMemory::memReadReqHandler(MemReadReqPacket* _memReqPkt, int burstCount)
 	this->scheduleEvent(axi4BusAcqEvent, acalsim::top->getGlobalTick() + latency + 1);
 	this->scheduleEvent(memReqDoneEvent, acalsim::top->getGlobalTick() + latency);
 
+	acalsim::top->addChromeTraceRecord(acalsim::ChromeTraceRecord::createCompleteEvent(
+	    /* pid */ "Req-" + std::to_string(_memReqPkt->getID()), /* name */ "Mem Read",
+	    /* ts */ acalsim::top->getGlobalTick(), /* dur */ latency, /* cat */ "", /* tid */ "",
+	    /* args */ nullptr));
+
+	acalsim::top->addChromeTraceRecord(acalsim::ChromeTraceRecord::createCompleteEvent(
+	    /* pid */ "Resp-" + std::to_string(memRespPkt->getID()), /* name */ "Read Resp Bus Acq Event",
+	    /* ts */ acalsim::top->getGlobalTick() + latency, /* dur */ 1, /* cat */ "", /* tid */ "",
+	    /* args */ nullptr));
+
 	if (_memReqPkt->getBurstSize() == burstCount + 1) { rc->recycle(_memReqPkt); }
 }
 
@@ -123,5 +144,11 @@ void DataMemory::memWriteReqHandler(MemWriteReqPacket* _memReqPkt) {
 	auto             rc              = acalsim::top->getRecycleContainer();
 	MemReqDoneEvent* memReqDoneEvent = rc->acquire<MemReqDoneEvent>(&MemReqDoneEvent::renew, this);
 	this->scheduleEvent(memReqDoneEvent, acalsim::top->getGlobalTick() + latency);
+
+	acalsim::top->addChromeTraceRecord(acalsim::ChromeTraceRecord::createCompleteEvent(
+	    /* pid */ "Req-" + std::to_string(_memReqPkt->getID()), /* name */ "Mem Write",
+	    /* ts */ acalsim::top->getGlobalTick(), /* dur */ latency, /* cat */ "", /* tid */ "",
+	    /* args */ nullptr));
+
 	rc->recycle(_memReqPkt);
 }
