@@ -17,6 +17,16 @@ bool AXI4Bus::axi4BusReqHandler(acalsim::Tick _when, MemReqPacket* _memReqPkt) {
 	auto               dma_base_adr = static_cast<DMA*>(this->getUpStream("USDMA"))->getBaseAddr();
 	acalsim::SimEvent* event;
 
+	std::string sender   = dynamic_cast<DMA*>(_memReqPkt->getSender()) ? "DMA" : "CPU";
+	std::string reqType  = dynamic_cast<MemReadReqPacket*>(_memReqPkt) ? " Read Req-" : " Write Req-";
+	std::string receiver = adr >= dma_base_adr ? "DMA" : "Mem";
+
+	acalsim::top->addChromeTraceRecord(acalsim::ChromeTraceRecord::createCompleteEvent(
+	    /* pid */ sender + reqType + std::to_string(_memReqPkt->getID()),
+	    /* name */ receiver + " Transfer Event",
+	    /* ts */ acalsim::top->getGlobalTick(), /* dur */ 1, /* cat */ "", /* tid */ "",
+	    /* args */ nullptr));
+
 	if (adr >= dma_base_adr) {
 		event =
 		    rc->acquire<DMACommEvent>(&DMACommEvent::renew, dynamic_cast<DMA*>(this->getUpStream("USDMA")), _memReqPkt);
@@ -41,9 +51,21 @@ bool AXI4Bus::axi4BusReadRespHandler(acalsim::Tick _when, MemReadRespPacket* _me
 	acalsim::SimEvent* event;
 
 	if (auto dma = dynamic_cast<DMA*>(_memReadRespPkt->getReceiver())) {
+		acalsim::top->addChromeTraceRecord(acalsim::ChromeTraceRecord::createCompleteEvent(
+		    /* pid */ "Mem Read Resp-" + std::to_string(_memReadRespPkt->getID()), /* name */ "DMA Transfer Event",
+		    /* ts */ acalsim::top->getGlobalTick(), /* dur */ 1, /* cat */ "", /* tid */ "",
+		    /* args */ nullptr));
+
 		event = rc->acquire<DMACommEvent>(&DMACommEvent::renew, dynamic_cast<DMA*>(this->getUpStream("USDMA")),
 		                                  _memReadRespPkt);
 	} else if (auto cpu = dynamic_cast<CPU*>(_memReadRespPkt->getReceiver())) {
+		std::string sender = dynamic_cast<DMA*>(_memReadRespPkt->getSender()) ? "DMA" : "Mem";
+		acalsim::top->addChromeTraceRecord(acalsim::ChromeTraceRecord::createCompleteEvent(
+		    /* pid */ sender + " Read Resp-" + std::to_string(_memReadRespPkt->getID()),
+		    /* name */ "CPU Transfer Event",
+		    /* ts */ acalsim::top->getGlobalTick(), /* dur */ 1, /* cat */ "", /* tid */ "",
+		    /* args */ nullptr));
+
 		event = rc->acquire<CPUCommEvent>(&CPUCommEvent::renew, dynamic_cast<CPU*>(this->getUpStream("USCPU")),
 		                                  _memReadRespPkt);
 	}

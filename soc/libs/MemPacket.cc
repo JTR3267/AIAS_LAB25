@@ -21,11 +21,12 @@
 #include "DMA.hh"
 #include "DataMemory.hh"
 
-void MemReqPacket::renew(const instr& _i, instr_type _op, uint32_t _addr) {
+void MemReqPacket::renew(const instr& _i, instr_type _op, uint32_t _addr, acalsim::SimModule* _sender) {
 	this->acalsim::SimPacket::renew();
-	this->i    = _i;
-	this->op   = _op;
-	this->addr = _addr;
+	this->i      = _i;
+	this->op     = _op;
+	this->addr   = _addr;
+	this->sender = _sender;
 }
 
 void MemReqPacket::visit(acalsim::Tick _when, acalsim::SimModule& _module) {
@@ -45,21 +46,21 @@ void MemReqPacket::visit(acalsim::Tick _when, acalsim::SimBase& _simulator) {
 }
 
 void MemReadRespPacket::renew(const instr& _i, instr_type _op, uint32_t _data, operand _a1,
-                              acalsim::SimModule* _receiver) {
+                              acalsim::SimModule* _receiver, acalsim::SimModule* _sender) {
 	this->acalsim::SimPacket::renew();
 	this->i        = _i;
 	this->op       = _op;
 	this->data     = _data;
 	this->a1       = _a1;
 	this->receiver = _receiver;
+	this->sender   = _sender;
 }
 
 void MemReadReqPacket::renew(const instr& _i, instr_type _op, uint32_t _addr, operand _a1, int _burstSize,
                              acalsim::SimModule* _sender) {
-	this->MemReqPacket::renew(_i, _op, _addr);
+	this->MemReqPacket::renew(_i, _op, _addr, _sender);
 	this->a1        = _a1;
 	this->burstSize = _burstSize;
-	this->sender    = _sender;
 }
 
 void MemWriteRespPacket::renew(const instr& _i) {
@@ -67,8 +68,9 @@ void MemWriteRespPacket::renew(const instr& _i) {
 	this->i = _i;
 }
 
-void MemWriteReqPacket::renew(const instr& _i, instr_type _op, uint32_t _addr, uint32_t _data, int _validBytes) {
-	this->MemReqPacket::renew(_i, _op, _addr);
+void MemWriteReqPacket::renew(const instr& _i, instr_type _op, uint32_t _addr, uint32_t _data, int _validBytes,
+                              acalsim::SimModule* _sender) {
+	this->MemReqPacket::renew(_i, _op, _addr, _sender);
 	this->data       = _data;
 	this->validBytes = _validBytes;
 }
