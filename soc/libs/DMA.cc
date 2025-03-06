@@ -152,8 +152,8 @@ void DMA::dmaWriteReqHandler(MemWriteReqPacket* _memWriteReqPkt) {
 void DMA::dmaStart() {
 	auto srcBaseAddr  = rf[1];
 	auto destBaseAddr = rf[2];
-	auto tensorHeight = rf[3] & 0xff;
-	auto tensorWidth  = (rf[3] >> 8) & 0xff;
+	auto tensorHeight = (rf[3] & 0xff) + 1;
+	auto tensorWidth  = ((rf[3] >> 8) & 0xff) + 1;
 	auto destStride   = (rf[3] >> 16) & 0xff;
 	auto srcStride    = (rf[3] >> 24) & 0xff;
 
