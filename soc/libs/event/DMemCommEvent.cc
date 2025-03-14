@@ -18,10 +18,10 @@
 
 #include "DataMemory.hh"
 
-DMemCommEvent::DMemCommEvent(DataMemory* _callee, MemReqPacket* _memReqPkt)
+DMemCommEvent::DMemCommEvent(DataMemory* _callee, acalsim::SimPacket* _memReqPkt)
     : acalsim::SimEvent("MemReqEvent"), callee(_callee), memReqPkt(_memReqPkt) {}
 
-void DMemCommEvent::renew(DataMemory* _callee, MemReqPacket* _memReqPkt) {
+void DMemCommEvent::renew(DataMemory* _callee, acalsim::SimPacket* _memReqPkt) {
 	this->acalsim::SimEvent::renew();
 	this->callee    = _callee;
 	this->memReqPkt = _memReqPkt;

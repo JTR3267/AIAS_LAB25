@@ -21,19 +21,20 @@
 #include "DMA.hh"
 #include "DataMemory.hh"
 
-void MemReqPacket::renew(const instr& _i, instr_type _op, uint32_t _addr, acalsim::SimModule* _sender) {
+void MemReqPacket::renew(const instr& _i, instr_type _op, uint32_t _addr, acalsim::SimModule* _sender, int _burstSize) {
 	this->acalsim::SimPacket::renew();
-	this->i      = _i;
-	this->op     = _op;
-	this->addr   = _addr;
-	this->sender = _sender;
+	this->i         = _i;
+	this->op        = _op;
+	this->addr      = _addr;
+	this->sender    = _sender;
+	this->burstSize = _burstSize;
 }
 
 void MemReqPacket::visit(acalsim::Tick _when, acalsim::SimModule& _module) {
 	if (auto dm = dynamic_cast<DataMemory*>(&_module)) {
 		dm->memReqHandler(_when, this);
 	} else if (auto axi4Bus = dynamic_cast<AXI4Bus*>(&_module)) {
-		axi4Bus->axi4BusReqHandler(_when, this);
+		axi4Bus->axi4BusReqHandler(_when, this, NULL);
 	} else if (auto dma = dynamic_cast<DMA*>(&_module)) {
 		dma->dmaReqHandler(_when, this);
 	} else {
@@ -58,9 +59,8 @@ void MemReadRespPacket::renew(const instr& _i, instr_type _op, uint32_t _data, o
 
 void MemReadReqPacket::renew(const instr& _i, instr_type _op, uint32_t _addr, operand _a1, int _burstSize,
                              acalsim::SimModule* _sender) {
-	this->MemReqPacket::renew(_i, _op, _addr, _sender);
-	this->a1        = _a1;
-	this->burstSize = _burstSize;
+	this->MemReqPacket::renew(_i, _op, _addr, _sender, _burstSize);
+	this->a1 = _a1;
 }
 
 void MemWriteRespPacket::renew(const instr& _i) {
@@ -68,11 +68,39 @@ void MemWriteRespPacket::renew(const instr& _i) {
 	this->i = _i;
 }
 
-void MemWriteReqPacket::renew(const instr& _i, instr_type _op, uint32_t _addr, uint32_t _data, int _validBytes,
-                              acalsim::SimModule* _sender) {
-	this->MemReqPacket::renew(_i, _op, _addr, _sender);
+void MemWriteReqPacket::renew(const instr& _i, instr_type _op, uint32_t _addr, acalsim::SimModule* _sender,
+                              int _burstSize) {
+	this->MemReqPacket::renew(_i, _op, _addr, _sender, _burstSize);
+}
+
+void MemWriteDataPacket::renew(uint32_t _data, int _validBytes) {
+	this->acalsim::SimPacket::renew();
 	this->data       = _data;
 	this->validBytes = _validBytes;
+}
+
+void MemWriteDataPacket::visit(acalsim::Tick _when, acalsim::SimModule& _module) {
+	if (auto dmem = dynamic_cast<DataMemory*>(&_module)) {
+		dmem->memReqHandler(_when, this);
+	} else if (auto dma = dynamic_cast<DMA*>(&_module)) {
+		dma->dmaReqHandler(_when, this);
+	} else if (auto axi4Bus = dynamic_cast<AXI4Bus*>(&_module)) {
+		axi4Bus->axi4BusReqHandler(_when, this, NULL);
+	} else {
+		CLASS_ERROR << "void MemWriteDataPacket::visit (SimModule& module) is not implemented yet!";
+	}
+}
+
+void MemWriteDataPacket::visit(acalsim::Tick _when, acalsim::SimBase& _simulator) {
+	CLASS_ERROR << "void MemWriteDataPacket::visit (SimBase& simulator) is not implemented yet!";
+}
+
+void MemWriteDataPacket::visit(acalsim::Tick _when, acalsim::SimModule& _module, acalsim::SimModule* _sender) {
+	if (auto axi4Bus = dynamic_cast<AXI4Bus*>(&_module)) {
+		axi4Bus->axi4BusReqHandler(_when, this, _sender);
+	} else {
+		CLASS_ERROR << "void MemWriteDataPacket::visit (SimModule& module, SimModule* _sender) is not implemented yet!";
+	}
 }
 
 void MemReadRespPacket::visit(acalsim::Tick _when, acalsim::SimModule& _module) {

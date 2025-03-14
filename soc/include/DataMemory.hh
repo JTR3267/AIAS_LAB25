@@ -28,6 +28,8 @@
 typedef struct ReqInfo {
 	MemReqPacket* memReqPkt;
 	int           burstCount;
+	uint32_t      data;
+	int           validBytes;
 } ReqInfo;
 
 /**
@@ -44,7 +46,10 @@ public:
 	 * @param _name Name identifier for the memory module
 	 * @param _size Size of the memory in bytes
 	 */
-	DataMemory(std::string _name, size_t _size) : acalsim::SimModule(_name), BaseMemory(_size) {}
+	DataMemory(std::string _name, size_t _size) : acalsim::SimModule(_name), BaseMemory(_size) {
+		this->unmatch_write_data = NULL;
+		this->unmatch_write_req  = NULL;
+	}
 
 	/**
 	 * @brief Virtual destructor
@@ -65,15 +70,19 @@ public:
 	 * @param _memReqPkt Pointer to the memory write request packet
 	 * @details Processes incoming write requests and updates memory contents
 	 */
-	void memWriteReqHandler(MemWriteReqPacket* _memWriteReqPkt);
+	void memWriteReqHandler(MemWriteReqPacket* _memWriteReqPkt, int burstCount, uint32_t data, int validBytes);
 
-	void memReqHandler(acalsim::Tick _when, MemReqPacket* _memReqPkt);
+	void memReqHandler(acalsim::Tick _when, acalsim::SimPacket* _memReqPkt);
 
 	void triggerNextReq();
 
 private:
 	std::queue<ReqInfo> pending_req_queue;
+	MemWriteReqPacket*  unmatch_write_req;
+	MemWriteDataPacket* unmatch_write_data;
 	bool                is_idle = true;
+	int                 write_burst_count;
+	int                 write_burst_size;
 };
 
 #endif

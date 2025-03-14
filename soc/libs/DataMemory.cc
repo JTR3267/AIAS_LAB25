@@ -21,25 +21,50 @@
 #include "event/AXI4BusAcqEvent.hh"
 #include "event/MemReqDoneEvent.hh"
 
-void DataMemory::memReqHandler(acalsim::Tick _when, MemReqPacket* _memReqPkt) {
+void DataMemory::memReqHandler(acalsim::Tick _when, acalsim::SimPacket* _memReqPkt) {
 	if (auto pkt = dynamic_cast<MemReadReqPacket*>(_memReqPkt)) {
-		for (int i = 0; i < pkt->getBurstSize(); i++) { this->pending_req_queue.push({pkt, i}); }
+		for (int i = 0; i < pkt->getBurstSize(); i++) { this->pending_req_queue.push({pkt, i, 0, 0}); }
 	} else if (auto pkt = dynamic_cast<MemWriteReqPacket*>(_memReqPkt)) {
-		this->pending_req_queue.push({pkt, 0});
+		this->write_burst_count = 0;
+		this->write_burst_size  = pkt->getBurstSize();
+
+		if (this->unmatch_write_data) {
+			this->pending_req_queue.push({pkt, this->write_burst_count++, this->unmatch_write_data->getData(),
+			                              this->unmatch_write_data->getValidBytes()});
+			acalsim::top->getRecycleContainer()->recycle(this->unmatch_write_data);
+			this->unmatch_write_data = NULL;
+
+			if (pkt->getBurstSize() > 1) this->unmatch_write_req = pkt;
+		} else {
+			this->unmatch_write_req = pkt;
+		}
+	} else if (auto pkt = dynamic_cast<MemWriteDataPacket*>(_memReqPkt)) {
+		if (this->unmatch_write_req) {
+			this->pending_req_queue.push(
+			    {this->unmatch_write_req, this->write_burst_count++, pkt->getData(), pkt->getValidBytes()});
+			acalsim::top->getRecycleContainer()->recycle(pkt);
+
+			if (this->write_burst_count == this->write_burst_size) { this->unmatch_write_req = NULL; }
+		} else {
+			this->unmatch_write_data = pkt;
+		}
 	} else {
 		CLASS_ERROR << "Wrong memory request packet type!";
 	}
+
 	if (this->is_idle) {
 		this->is_idle = false;
 		triggerNextReq();
 	} else {
-		std::string sender  = dynamic_cast<DMA*>(_memReqPkt->getSender()) ? "DMA" : "CPU";
-		std::string reqType = dynamic_cast<MemReadReqPacket*>(_memReqPkt) ? " Read Req-" : " Write Req-";
-		acalsim::top->addChromeTraceRecord(acalsim::ChromeTraceRecord::createDurationEvent(
-		    /* ph */ "B", /* pid */ sender + reqType + std::to_string(_memReqPkt->getID()),
-		    /* name */ "Mem Req Pending",
-		    /* ts */ acalsim::top->getGlobalTick(), /* cat */ "", /* tid */ "",
-		    /* args */ nullptr));
+		if (auto pkt = dynamic_cast<MemReqPacket*>(_memReqPkt)) {
+			std::string sender  = dynamic_cast<DMA*>(pkt->getSender()) ? "DMA" : "CPU";
+			std::string reqType = dynamic_cast<MemReadReqPacket*>(pkt) ? " Read Req-" : " Write Req-";
+			acalsim::top->addChromeTraceRecord(acalsim::ChromeTraceRecord::createDurationEvent(
+			    /* ph */ "B", /* pid */ sender + reqType + std::to_string(pkt->getID()),
+			    /* name */ "Mem Req Pending",
+			    /* ts */ acalsim::top->getGlobalTick(), /* cat */ "", /* tid */ "",
+			    /* args */ nullptr));
+		}
 	}
 }
 
@@ -49,7 +74,7 @@ void DataMemory::triggerNextReq() {
 		if (auto pkt = dynamic_cast<MemReadReqPacket*>(queueFront.memReqPkt)) {
 			memReadReqHandler(pkt, queueFront.burstCount);
 		} else if (auto pkt = dynamic_cast<MemWriteReqPacket*>(queueFront.memReqPkt)) {
-			memWriteReqHandler(pkt);
+			memWriteReqHandler(pkt, queueFront.burstCount, queueFront.data, queueFront.validBytes);
 		}
 
 		std::string sender  = dynamic_cast<DMA*>(queueFront.memReqPkt->getSender()) ? "DMA" : "CPU";
@@ -99,7 +124,7 @@ void DataMemory::memReadReqHandler(MemReadReqPacket* _memReadReqPkt, int burstCo
 	MemReadRespPacket* memRespPkt =
 	    rc->acquire<MemReadRespPacket>(&MemReadRespPacket::renew, i, op, ret, a1, sender, this);
 	AXI4BusAcqEvent* axi4BusAcqEvent = rc->acquire<AXI4BusAcqEvent>(
-	    &AXI4BusAcqEvent::renew, dynamic_cast<AXI4Bus*>(this->getDownStream("DSAXI4Bus")), memRespPkt);
+	    &AXI4BusAcqEvent::renew, dynamic_cast<AXI4Bus*>(this->getDownStream("DSAXI4Bus")), memRespPkt, nullptr);
 	MemReqDoneEvent* memReqDoneEvent = rc->acquire<MemReqDoneEvent>(&MemReqDoneEvent::renew, this);
 	this->scheduleEvent(axi4BusAcqEvent, acalsim::top->getGlobalTick() + latency + 1);
 	this->scheduleEvent(memReqDoneEvent, acalsim::top->getGlobalTick() + latency);
@@ -118,12 +143,10 @@ void DataMemory::memReadReqHandler(MemReadReqPacket* _memReadReqPkt, int burstCo
 	if (_memReadReqPkt->getBurstSize() == burstCount + 1) { rc->recycle(_memReadReqPkt); }
 }
 
-void DataMemory::memWriteReqHandler(MemWriteReqPacket* _memWriteReqPkt) {
-	instr      i          = _memWriteReqPkt->getInstr();
-	instr_type op         = _memWriteReqPkt->getOP();
-	uint32_t   addr       = _memWriteReqPkt->getAddr();
-	uint32_t   data       = _memWriteReqPkt->getData();
-	int        validBytes = _memWriteReqPkt->getValidBytes();
+void DataMemory::memWriteReqHandler(MemWriteReqPacket* _memWriteReqPkt, int burstCount, uint32_t data, int validBytes) {
+	instr      i    = _memWriteReqPkt->getInstr();
+	instr_type op   = _memWriteReqPkt->getOP();
+	uint32_t   addr = _memWriteReqPkt->getAddr() + burstCount * 4;
 
 	size_t bytes   = 0;
 	int    latency = acalsim::top->getParameter<acalsim::Tick>("SOC", "memory_write_latency");
@@ -167,5 +190,5 @@ void DataMemory::memWriteReqHandler(MemWriteReqPacket* _memWriteReqPkt) {
 	    /* ts */ acalsim::top->getGlobalTick(), /* dur */ latency, /* cat */ "", /* tid */ "",
 	    /* args */ nullptr));
 
-	rc->recycle(_memWriteReqPkt);
+	if (_memWriteReqPkt->getBurstSize() == burstCount + 1) { rc->recycle(_memWriteReqPkt); }
 }

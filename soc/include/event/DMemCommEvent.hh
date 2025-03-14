@@ -25,15 +25,15 @@ class DataMemory;
 class DMemCommEvent : public acalsim::SimEvent {
 public:
 	DMemCommEvent() = default;
-	DMemCommEvent(DataMemory* _callee, MemReqPacket* _memReqPkt);
+	DMemCommEvent(DataMemory* _callee, acalsim::SimPacket* _memReqPkt);
 	virtual ~DMemCommEvent() = default;
 
-	void renew(DataMemory* _callee, MemReqPacket* _memReqPkt);
+	void renew(DataMemory* _callee, acalsim::SimPacket* _memReqPkt);
 	void process() override;
 
 private:
-	DataMemory*   callee;
-	MemReqPacket* memReqPkt;
+	DataMemory*         callee;
+	acalsim::SimPacket* memReqPkt;
 };
 
 #endif

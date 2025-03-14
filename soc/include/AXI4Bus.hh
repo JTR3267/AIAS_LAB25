@@ -14,15 +14,23 @@ public:
 
 	virtual ~AXI4Bus() {}
 
-	bool axi4BusReqHandler(acalsim::Tick _when, MemReqPacket* _memReqPkt);
+	bool axi4BusReqHandler(acalsim::Tick _when, acalsim::SimPacket* _memReqPkt, acalsim::SimModule* _sender);
 
 	bool axi4BusReadRespHandler(acalsim::Tick _when, MemReadRespPacket* _memReadRespPkt);
 
 	BurstMode getBurstMode() { return this->burstMode; }
 
+	void accept(acalsim::Tick when, acalsim::SimPacket* pkt, acalsim::SimModule* sender) {
+		if (auto dataPkt = dynamic_cast<MemWriteDataPacket*>(pkt)) { dataPkt->visit(when, *this, sender); }
+	}
+
+	void accept(acalsim::Tick when, acalsim::SimPacket& pkt) { pkt.visit(when, *this); }
+
 private:
-	size_t    busWidth;
-	BurstMode burstMode;
+	size_t              busWidth;
+	BurstMode           burstMode;
+	MemWriteDataPacket* cpuWriteData;
+	std::string         cpuWriteDest;
 };
 
 #endif

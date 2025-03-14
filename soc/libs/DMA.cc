@@ -9,15 +9,37 @@
 #include "event/DMAReqDoneEvent.hh"
 #include "event/DMAStartEvent.hh"
 
-DMA::DMA(std::string _name, int _base_addr, int _size)
-    : acalsim::SimModule(_name), base_addr(_base_addr), size(_size) {}
+DMA::DMA(std::string _name, int _base_addr, int _size) : acalsim::SimModule(_name), base_addr(_base_addr), size(_size) {
+	memset(this->rf, 0, 24);
+	this->unmatch_write_data = NULL;
+	this->unmatch_write_req  = NULL;
+}
 
-void DMA::dmaReqHandler(acalsim::Tick _when, MemReqPacket* _memReqPkt) {
-	this->pending_req_queue.push(_memReqPkt);
+void DMA::dmaReqHandler(acalsim::Tick _when, acalsim::SimPacket* _memReqPkt) {
+	if (auto pkt = dynamic_cast<MemReadReqPacket*>(_memReqPkt)) {
+		this->pending_req_queue.push({pkt, 0});
+	} else if (auto pkt = dynamic_cast<MemWriteReqPacket*>(_memReqPkt)) {
+		if (this->unmatch_write_data) {
+			this->pending_req_queue.push({pkt, this->unmatch_write_data->getData()});
+			acalsim::top->getRecycleContainer()->recycle(this->unmatch_write_data);
+			this->unmatch_write_data = NULL;
+		} else {
+			this->unmatch_write_req = pkt;
+		}
+	} else if (auto pkt = dynamic_cast<MemWriteDataPacket*>(_memReqPkt)) {
+		if (this->unmatch_write_req) {
+			this->pending_req_queue.push({this->unmatch_write_req, pkt->getData()});
+			acalsim::top->getRecycleContainer()->recycle(pkt);
+			this->unmatch_write_req = NULL;
+		} else {
+			this->unmatch_write_data = pkt;
+		}
+	}
+
 	if (this->is_idle) {
 		this->is_idle = false;
 		triggerNextReq();
-	} else {
+	} else if (dynamic_cast<MemReadReqPacket*>(_memReqPkt) || dynamic_cast<MemWriteReqPacket*>(_memReqPkt)) {
 		std::string reqType = dynamic_cast<MemReadReqPacket*>(_memReqPkt) ? "CPU Read Req-" : "CPU Write Req-";
 		acalsim::top->addChromeTraceRecord(acalsim::ChromeTraceRecord::createDurationEvent(
 		    /* ph */ "B", /* pid */ reqType + std::to_string(_memReqPkt->getID()),
@@ -30,11 +52,11 @@ void DMA::dmaReqHandler(acalsim::Tick _when, MemReqPacket* _memReqPkt) {
 void DMA::triggerNextReq() {
 	// check bit set
 	if (!this->pending_req_queue.empty()) {
-		auto pkt = this->pending_req_queue.front();
+		auto pkt = this->pending_req_queue.front().memReqPkt;
 		if (auto readPkt = dynamic_cast<MemReadReqPacket*>(pkt)) {
 			dmaReadReqHandler(readPkt);
 		} else if (auto writePkt = dynamic_cast<MemWriteReqPacket*>(pkt)) {
-			dmaWriteReqHandler(writePkt);
+			dmaWriteReqHandler(writePkt, this->pending_req_queue.front().data);
 		}
 
 		std::string reqType = dynamic_cast<MemReadReqPacket*>(pkt) ? "CPU Read Req-" : "CPU Write Req-";
@@ -83,7 +105,7 @@ void DMA::dmaReadReqHandler(MemReadReqPacket* _memReadReqPkt) {
 	MemReadRespPacket* memRespPkt =
 	    rc->acquire<MemReadRespPacket>(&MemReadRespPacket::renew, i, op, ret, a1, sender, this);
 	AXI4BusAcqEvent* axi4BusAcqEvent = rc->acquire<AXI4BusAcqEvent>(
-	    &AXI4BusAcqEvent::renew, dynamic_cast<AXI4Bus*>(this->getDownStream("DSAXI4Bus")), memRespPkt);
+	    &AXI4BusAcqEvent::renew, dynamic_cast<AXI4Bus*>(this->getDownStream("DSAXI4Bus")), memRespPkt, nullptr);
 	DMAReqDoneEvent* dmaReqDoneEvent = rc->acquire<DMAReqDoneEvent>(&DMAReqDoneEvent::renew, this);
 	this->scheduleEvent(axi4BusAcqEvent, acalsim::top->getGlobalTick() + 2);
 	this->scheduleEvent(dmaReqDoneEvent, acalsim::top->getGlobalTick() + 1);
@@ -101,10 +123,9 @@ void DMA::dmaReadReqHandler(MemReadReqPacket* _memReadReqPkt) {
 	rc->recycle(_memReadReqPkt);
 }
 
-void DMA::dmaWriteReqHandler(MemWriteReqPacket* _memWriteReqPkt) {
+void DMA::dmaWriteReqHandler(MemWriteReqPacket* _memWriteReqPkt, uint32_t data) {
 	instr_type op   = _memWriteReqPkt->getOP();
 	uint32_t   addr = _memWriteReqPkt->getAddr();
-	uint32_t   data = _memWriteReqPkt->getData();
 	size_t     bytes;
 
 	switch (op) {
@@ -204,8 +225,9 @@ void DMA::triggerNextDMA(int _latency) {
 		this->curDestAddr   = dmaInfo.destAddr;
 		this->curBytes      = dmaInfo.bytes;
 
-		AXI4BusAcqEvent* event = rc->acquire<AXI4BusAcqEvent>(
-		    &AXI4BusAcqEvent::renew, dynamic_cast<AXI4Bus*>(this->getDownStream("DSAXI4Bus")), dmaInfo.memReadReqPkt);
+		AXI4BusAcqEvent* event = rc->acquire<AXI4BusAcqEvent>(&AXI4BusAcqEvent::renew,
+		                                                      dynamic_cast<AXI4Bus*>(this->getDownStream("DSAXI4Bus")),
+		                                                      dmaInfo.memReadReqPkt, nullptr);
 		this->scheduleEvent(event, acalsim::top->getGlobalTick() + 1 + _latency);
 
 		acalsim::top->addChromeTraceRecord(acalsim::ChromeTraceRecord::createCompleteEvent(
@@ -216,7 +238,7 @@ void DMA::triggerNextDMA(int _latency) {
 		this->dma_info_queue.pop();
 	} else {
 		DMAEndEvent* event = rc->acquire<DMAEndEvent>(&DMAEndEvent::renew, this);
-		this->scheduleEvent(event, acalsim::top->getGlobalTick() + 1);
+		this->scheduleEvent(event, acalsim::top->getGlobalTick() + 1 + _latency);
 	}
 }
 
@@ -224,31 +246,55 @@ void DMA::dmaReadRespHandler(acalsim::Tick _when, MemReadRespPacket* _memReadRes
 	auto     rc   = acalsim::top->getRecycleContainer();
 	uint32_t data = _memReadRespPkt->getData();
 	instr    ins;
-	bool     writeReq = false;
+	this->curBurstCount++;
+
+	if (this->curBurstCount == 1) {
+		MemWriteReqPacket* pkt = rc->acquire<MemWriteReqPacket>(&MemWriteReqPacket::renew, ins, SW, this->curDestAddr,
+		                                                        this, this->curBurstSize);
+		this->dma_write_req_packet = pkt;
+	}
 
 	if (this->curBytes > 0) {
-		writeReq = true;
-
-		int                validBytes = this->curBytes >= 4 ? 4 : this->curBytes;
-		MemWriteReqPacket* pkt = rc->acquire<MemWriteReqPacket>(&MemWriteReqPacket::renew, ins, SW, this->curDestAddr,
-		                                                        data, validBytes, this);
+		int                 validBytes = this->curBytes >= 4 ? 4 : this->curBytes;
+		MemWriteDataPacket* pkt        = rc->acquire<MemWriteDataPacket>(&MemWriteDataPacket::renew, data, validBytes);
+		this->dma_write_data_packet.push(pkt);
 		this->curBytes -= validBytes;
-		this->curDestAddr += validBytes;
+	} else {
+		MemWriteDataPacket* pkt = rc->acquire<MemWriteDataPacket>(&MemWriteDataPacket::renew, data, 0);
+		this->dma_write_data_packet.push(pkt);
+	}
 
-		AXI4BusAcqEvent* event = rc->acquire<AXI4BusAcqEvent>(
-		    &AXI4BusAcqEvent::renew, dynamic_cast<AXI4Bus*>(this->getDownStream("DSAXI4Bus")), pkt);
-		this->scheduleEvent(event, acalsim::top->getGlobalTick() + 1);
+	if (this->curBurstCount == this->curBurstSize) {
+		int queue_size = this->dma_write_data_packet.size();
+		for (int i = 0; i < queue_size; i++) {
+			if (i == 0) {
+				AXI4BusAcqEvent* event = rc->acquire<AXI4BusAcqEvent>(
+				    &AXI4BusAcqEvent::renew, dynamic_cast<AXI4Bus*>(this->getDownStream("DSAXI4Bus")),
+				    this->dma_write_req_packet, nullptr);
+				this->scheduleEvent(event, acalsim::top->getGlobalTick() + 1);
+			}
 
-		acalsim::top->addChromeTraceRecord(acalsim::ChromeTraceRecord::createCompleteEvent(
-		    /* pid */ "DMA Write Req-" + std::to_string(pkt->getID()), /* name */ "Bus Acq Event",
-		    /* ts */ acalsim::top->getGlobalTick(), /* dur */ 1, /* cat */ "", /* tid */ "",
-		    /* args */ nullptr));
+			AXI4BusAcqEvent* dataEvent = rc->acquire<AXI4BusAcqEvent>(
+			    &AXI4BusAcqEvent::renew, dynamic_cast<AXI4Bus*>(this->getDownStream("DSAXI4Bus")),
+			    this->dma_write_data_packet.front(), this);
+			this->scheduleEvent(dataEvent, acalsim::top->getGlobalTick() + 1 + i);
+
+			this->dma_write_data_packet.pop();
+		}
+
+		if (queue_size > 0) {
+			acalsim::top->addChromeTraceRecord(acalsim::ChromeTraceRecord::createCompleteEvent(
+			    /* pid */ "DMA Write Req-" + std::to_string(this->dma_write_req_packet->getID()),
+			    /* name */ "Bus Acq Event",
+			    /* ts */ acalsim::top->getGlobalTick(), /* dur */ 1, /* cat */ "", /* tid */ "",
+			    /* args */ nullptr));
+			triggerNextDMA(queue_size);
+		} else {
+			triggerNextDMA(0);
+		}
 	}
 
 	rc->recycle(_memReadRespPkt);
-
-	this->curBurstCount++;
-	if (this->curBurstCount == this->curBurstSize) { writeReq ? triggerNextDMA(1) : triggerNextDMA(0); }
 };
 
 void DMA::dmaEnd() {
