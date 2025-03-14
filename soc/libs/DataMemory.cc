@@ -22,9 +22,15 @@
 
 void DataMemory::memReqHandler(acalsim::Tick _when, acalsim::SimPacket* _memReqPkt) {
 	if (auto pkt = dynamic_cast<MemReadReqPacket*>(_memReqPkt)) {
-		for (int i = 0; i < pkt->getBurstSize(); i++) { this->pending_req_queue_.push({pkt, i}); }
+		for (int i = 0; i < pkt->getBurstSize(); i++) { this->pending_req_queue_.push({pkt, i, 0}); }
 	} else if (auto pkt = dynamic_cast<MemWriteReqPacket*>(_memReqPkt)) {
-		this->pending_req_queue_.push({pkt, 0});
+		for (int i = 0; i < pkt->getBurstSize(); i++) { this->unmatch_write_pkt_queue_.push({pkt, i, 0}); }
+	} else if (auto pkt = dynamic_cast<MemWriteDataPacket*>(_memReqPkt)) {
+		auto queueFront = this->unmatch_write_pkt_queue_.front();
+		queueFront.data = pkt->getData();
+		this->pending_req_queue_.push(queueFront);
+		this->unmatch_write_pkt_queue_.pop();
+		acalsim::top->getRecycleContainer()->recycle(_memReqPkt);
 	} else {
 		CLASS_ERROR << "Wrong memory request packet type!";
 	}
@@ -45,7 +51,7 @@ void DataMemory::triggerNextReq() {
 		if (auto pkt = dynamic_cast<MemReadReqPacket*>(queueFront.pkt)) {
 			memReadReqHandler(pkt, queueFront.burstCount);
 		} else if (auto pkt = dynamic_cast<MemWriteReqPacket*>(queueFront.pkt)) {
-			memWriteReqHandler(pkt);
+			memWriteReqHandler(pkt, queueFront.burstCount, queueFront.data);
 		}
 
 		acalsim::top->addChromeTraceRecord(acalsim::ChromeTraceRecord::createDurationEvent(
@@ -108,11 +114,10 @@ void DataMemory::memReadReqHandler(MemReadReqPacket* _memReqPkt, int burstCount)
 	if (_memReqPkt->getBurstSize() == burstCount + 1) { rc->recycle(_memReqPkt); }
 }
 
-void DataMemory::memWriteReqHandler(MemWriteReqPacket* _memReqPkt) {
+void DataMemory::memWriteReqHandler(MemWriteReqPacket* _memReqPkt, int burstCount, int data) {
 	instr      i    = _memReqPkt->getInstr();
 	instr_type op   = _memReqPkt->getOP();
-	uint32_t   addr = _memReqPkt->getAddr();
-	uint32_t   data = _memReqPkt->getData();
+	uint32_t   addr = _memReqPkt->getAddr() + burstCount * 4;
 
 	size_t bytes   = 0;
 	int    latency = acalsim::top->getParameter<acalsim::Tick>("SOC", "memory_write_latency");
@@ -150,5 +155,5 @@ void DataMemory::memWriteReqHandler(MemWriteReqPacket* _memReqPkt) {
 	    /* ts */ acalsim::top->getGlobalTick(), /* dur */ latency, /* cat */ "", /* tid */ "",
 	    /* args */ nullptr));
 
-	rc->recycle(_memReqPkt);
+	if (_memReqPkt->getBurstSize() == burstCount + 1) { rc->recycle(_memReqPkt); }
 }

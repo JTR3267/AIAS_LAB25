@@ -56,12 +56,31 @@ void MemWriteRespPacket::renew(const instr& _i) {
 	this->i = _i;
 }
 
-void MemWriteReqPacket::renew(const instr& _i, instr_type _op, uint32_t _addr, uint32_t _data) {
+void MemWriteDataPacket::renew(uint32_t _data) {
 	this->acalsim::SimPacket::renew();
-	this->i    = _i;
-	this->op   = _op;
-	this->addr = _addr;
 	this->data = _data;
+}
+
+void MemWriteDataPacket::visit(acalsim::Tick _when, acalsim::SimModule& _module) {
+	if (auto dm = dynamic_cast<DataMemory*>(&_module)) {
+		dm->memReqHandler(_when, this);
+	} else if (auto axi4Bus = dynamic_cast<AXI4Bus*>(&_module)) {
+		axi4Bus->memReqHandler(_when, this);
+	} else {
+		CLASS_ERROR << "Invalid module type!";
+	}
+}
+
+void MemWriteDataPacket::visit(acalsim::Tick _when, acalsim::SimBase& _simulator) {
+	CLASS_ERROR << "void MemWriteDataPacket::visit (SimBase& simulator) is not implemented yet!";
+}
+
+void MemWriteReqPacket::renew(const instr& _i, instr_type _op, uint32_t _addr, int _burstSize) {
+	this->acalsim::SimPacket::renew();
+	this->i         = _i;
+	this->op        = _op;
+	this->addr      = _addr;
+	this->burstSize = _burstSize;
 }
 
 void MemWriteReqPacket::visit(acalsim::Tick _when, acalsim::SimModule& _module) {

@@ -75,6 +75,7 @@ public:
 	const uint32_t& getAddr() { return this->addr; }
 	/** @return The operand */
 	const operand getA1() { return this->a1; }
+
 	const int getBurstSize() { return this->burstSize; }
 
 private:
@@ -83,6 +84,26 @@ private:
 	uint32_t   addr;  ///< Memory address
 	operand    a1;    ///< Operand
 	int        burstSize;
+};
+
+class MemWriteDataPacket : public acalsim::SimPacket {
+public:
+	MemWriteDataPacket() {}
+
+	MemWriteDataPacket(uint32_t _data) : acalsim::SimPacket(), data(_data) {}
+
+	virtual ~MemWriteDataPacket() {}
+
+	void renew(uint32_t _data);
+
+	void visit(acalsim::Tick _when, acalsim::SimModule& _module) override;
+
+	void visit(acalsim::Tick _when, acalsim::SimBase& _simulator) override;
+
+	const uint32_t& getData() { return this->data; }
+
+private:
+	uint32_t data;
 };
 
 /**
@@ -103,8 +124,8 @@ public:
 	 * @param _addr Memory address to write to
 	 * @param _data Data to write (default: 0)
 	 */
-	MemWriteReqPacket(const instr& _i, instr_type _op, uint32_t _addr, uint32_t _data = 0)
-	    : acalsim::SimPacket(), i(_i), op(_op), addr(_addr), data(_data) {}
+	MemWriteReqPacket(const instr& _i, instr_type _op, uint32_t _addr, int _burstSize)
+	    : acalsim::SimPacket(), i(_i), op(_op), addr(_addr), burstSize(_burstSize) {}
 
 	/** @brief Virtual destructor */
 	virtual ~MemWriteReqPacket() {}
@@ -117,7 +138,7 @@ public:
 	 * @param _addr New memory address
 	 * @param _data New data to write
 	 */
-	void renew(const instr& _i, instr_type _op, uint32_t _addr, uint32_t _data = 0);
+	void renew(const instr& _i, instr_type _op, uint32_t _addr, int _burstSize);
 
 	/** @brief Visit function for module interaction */
 	void visit(acalsim::Tick _when, acalsim::SimModule& _module) override;
@@ -130,14 +151,14 @@ public:
 	const instr_type& getOP() { return this->op; }
 	/** @return The memory address */
 	const uint32_t& getAddr() { return this->addr; }
-	/** @return The data to write */
-	const uint32_t& getData() { return this->data; }
+
+	const int getBurstSize() { return this->burstSize; }
 
 private:
 	instr      i;     ///< Associated instruction
 	instr_type op;    ///< Operation type
 	uint32_t   addr;  ///< Memory address
-	uint32_t   data;  ///< Data to write
+	int        burstSize;
 };
 
 /**

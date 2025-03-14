@@ -168,11 +168,16 @@ bool CPU::memWrite(const instr& _i, instr_type _op, uint32_t _addr, uint32_t _da
 	auto rc      = acalsim::top->getRecycleContainer();
 	int  latency = acalsim::top->getParameter<acalsim::Tick>("SOC", "memory_write_latency");
 
-	MemWriteReqPacket* pkt = rc->acquire<MemWriteReqPacket>(&MemWriteReqPacket::renew, _i, _op, _addr, _data);
-
-	AXI4BusAcqEvent* event = rc->acquire<AXI4BusAcqEvent>(
-	    &AXI4BusAcqEvent::renew, dynamic_cast<AXI4Bus*>(this->getDownStream("DSAXI4Bus")), pkt);
+	MemWriteReqPacket* pkt   = rc->acquire<MemWriteReqPacket>(&MemWriteReqPacket::renew, _i, _op, _addr, 1);
+	AXI4BusAcqEvent*   event = rc->acquire<AXI4BusAcqEvent>(
+        &AXI4BusAcqEvent::renew, dynamic_cast<AXI4Bus*>(this->getDownStream("DSAXI4Bus")), pkt);
 	this->scheduleEvent(event, acalsim::top->getGlobalTick() + 1);
+
+	MemWriteDataPacket* dataPkt   = rc->acquire<MemWriteDataPacket>(&MemWriteDataPacket::renew, _data);
+	AXI4BusAcqEvent*    dataEvent = rc->acquire<AXI4BusAcqEvent>(
+        &AXI4BusAcqEvent::renew, dynamic_cast<AXI4Bus*>(this->getDownStream("DSAXI4Bus")), dataPkt);
+	this->scheduleEvent(dataEvent, acalsim::top->getGlobalTick() + 1);
+
 	// stall CPU pipeline
 	memWriteRespHandler(_i);
 

@@ -28,6 +28,7 @@
 typedef struct QueueElement {
 	acalsim::SimPacket* pkt;
 	int                 burstCount;
+	uint32_t            data;
 } QueueElement;
 
 /**
@@ -65,12 +66,13 @@ public:
 	 * @param _memReqPkt Pointer to the memory write request packet
 	 * @details Processes incoming write requests and updates memory contents
 	 */
-	void memWriteReqHandler(MemWriteReqPacket* _memReqPkt);
+	void memWriteReqHandler(MemWriteReqPacket* _memReqPkt, int burstCount, int data);
 	void memReqHandler(acalsim::Tick _when, acalsim::SimPacket* _memReqPkt);
 	void triggerNextReq();
 
 private:
 	std::queue<QueueElement> pending_req_queue_;
+	std::queue<QueueElement> unmatch_write_pkt_queue_;
 	bool                     is_idle_ = true;
 };
 

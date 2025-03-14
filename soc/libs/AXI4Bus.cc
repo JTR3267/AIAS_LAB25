@@ -27,6 +27,12 @@ bool AXI4Bus::memReqHandler(acalsim::Tick _when, acalsim::SimPacket* _memReqPkt)
 		    (this->burstMode == BurstMode::INCR && burstSize != 1 && burstSize != 2 && burstSize != 4)) {
 			CLASS_ERROR << "Wrong burst size!";
 		}
+	} else if (auto pkt = dynamic_cast<MemWriteReqPacket*>(_memReqPkt)) {
+		int burstSize = pkt->getBurstSize();
+		if ((this->burstMode == BurstMode::FIXED && burstSize > 1) ||
+		    (this->burstMode == BurstMode::INCR && burstSize != 1 && burstSize != 2 && burstSize != 4)) {
+			CLASS_ERROR << "Wrong burst size!";
+		}
 	}
 
 	auto         rc    = acalsim::top->getRecycleContainer();
