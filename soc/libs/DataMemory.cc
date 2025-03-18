@@ -192,3 +192,15 @@ void DataMemory::memWriteReqHandler(MemWriteReqPacket* _memWriteReqPkt, int burs
 
 	if (_memWriteReqPkt->getBurstSize() == burstCount + 1) { rc->recycle(_memWriteReqPkt); }
 }
+
+void DataMemory::dumpMemory(uint32_t start, uint32_t end, std::string file_path) {
+	std::ofstream file(file_path, std::ios::binary | std::ios::out);
+
+	for (uint32_t i = start; i <= end; i++) {
+		void*   data = this->readData(i, 0, false);
+		uint8_t ret  = *(uint8_t*)data;
+		file << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(ret) << std::endl;
+	}
+
+	file.close();
+}

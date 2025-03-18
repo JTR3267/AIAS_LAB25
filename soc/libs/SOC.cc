@@ -92,5 +92,6 @@ void SOC::simInit() {
 
 void SOC::cleanup() {
 	this->cpu->printRegfile();
+	this->dmem->dumpMemory(0x2000, 0xefff, "memdump.txt");
 	CLASS_INFO << "SOC::cleanup() ";
 }

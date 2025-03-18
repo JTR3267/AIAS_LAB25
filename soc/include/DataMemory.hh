@@ -76,6 +76,8 @@ public:
 
 	void triggerNextReq();
 
+	void dumpMemory(uint32_t start, uint32_t end, std::string file_path);
+
 private:
 	std::queue<ReqInfo> pending_req_queue;
 	MemWriteReqPacket*  unmatch_write_req;
