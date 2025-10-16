@@ -8,7 +8,7 @@ $ BUILD_DIR="build/debug" && \
 $ ./build/debug/bin/soc --asm_file_path ./soc/asm/target_file
 ```
 
-1. Please create a timing diagram illustrating how you plan to model the latencies introduced by the AXI4 bus during CPU load and store instructions. You may refer to the schematic diagrams shown in [Lab 25-2](https://course.playlab.tw/md/g7aTCHr1TvquhvtDhUupFQ#End-to-end-Timeline-of-the-Demo-Example) as an example. 
+1. Please create a timing diagram illustrating how you plan to model the latencies introduced by the AXI4 bus during CPU load and store instructions. You may refer to the schematic diagrams shown in Lab 25-2 as an example. 
     
     - `Load`
     
@@ -157,9 +157,6 @@ exit:
     - `Burst Mode 2`
 
     ![](https://course.playlab.tw/md/uploads/ab8b8ee0-d187-4886-8b93-5fe4a84146d4.png)
-
-3. Please paste the memory contents to validate the correctness of your integrated simulator. 
-https://course.playlab.tw/git/JTR3267/lab25/-/blob/hw3/memdump.txt
 
 ## HW 25-4 Performance Analysis and Comparison
 
